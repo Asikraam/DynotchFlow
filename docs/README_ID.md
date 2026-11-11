@@ -4,12 +4,15 @@
 
 <br />
 
-# DynotchFlow (`v1.0.0`)
+# DynotchFlow (`v1.0.1`)
 
 **Dynamic Island super ringan untuk Windows 10 & 11**  
 *Lirik lagu sinkron otomatis · Tema Normal Glow & Matte Minimalist · Google Calendar (`.ics`) · Cuaca & Jadwal Sholat · Shelf drag-and-drop — **RAM di bawah 50 MB**.*
 
-[Back to English README](../README.md) · [Download Rilis](https://github.com/Asikraam/DynotchFlow/releases/latest)
+[![Release](https://img.shields.io/github/v/release/Asikraam/DynotchFlow?style=for-the-badge&color=38bdf8&logo=github)](https://github.com/Asikraam/DynotchFlow/releases)
+[![Downloads](https://img.shields.io/github/downloads/Asikraam/DynotchFlow/total?style=for-the-badge&color=f59e0b&label=Downloads&logo=github)](https://github.com/Asikraam/DynotchFlow/releases)
+
+[Back to English README](../README.md) · [Changelog](../CHANGELOG.md) · [Download Rilis](https://github.com/Asikraam/DynotchFlow/releases/latest)
 
 </div>
 
@@ -30,13 +33,13 @@ Pilih file sesuai kebutuhan dari halaman [**GitHub Releases**](https://github.co
 
 | Platform | Paket | Keterangan |
 | :--- | :--- | :--- |
-| **Windows 10 / 11 (x64)** | `DynotchFlow-Setup-v1.0.0-win-x64.exe` | **Direkomendasikan** — Installer 1-klik ke `%LOCALAPPDATA%\Programs\DynotchFlow` + shortcut |
-| **Windows 10 / 11 (x64)** | `DynotchFlow-v1.0.0-win-x64-Portable.zip` | **Portabel** — Ekstrak lalu langsung buka `DynotchFlow.exe` tanpa instalasi |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-Setup-v1.0.1-win-x64.exe` | **Direkomendasikan** — Installer 1-klik ke `%LOCALAPPDATA%\Programs\DynotchFlow` + shortcut |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-v1.0.1-win-x64-Portable.zip` | **Portabel** — Ekstrak lalu langsung buka `DynotchFlow.exe` tanpa instalasi |
 | **macOS / Linux** | *UI Source* | UI berjalan dari source; dukungan bridge native macOS/Linux menyusul |
 
 ### Langkah Instalasi
-1. Unduh **`DynotchFlow-Setup-v1.0.0-win-x64.exe`** *(atau file `.zip` portabel)* di [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
-2. Klik 2x `.exe` untuk memasang dan langsung menjalankan DynotchFlow.
+1. Unduh **`DynotchFlow-Setup-v1.0.1-win-x64.exe`** *(atau file `.zip` portabel)* di [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
+2. Klik 2x `.exe` untuk memasang dan langsung menjalankan DynotchFlow *(jika update dari `v1.0.0`, langsung timpa tanpa uninstall — setting & kalender aman).*
 3. **Jika muncul peringatan Windows Defender SmartScreen (*"Windows protected your PC"*):** Hal ini wajar untuk proyek open-source mandiri tanpa sertifikat berbayar. Cukup klik **More info** → **Run anyway**. Semua kode terbuka dan build binary diverifikasi lewat [**GitHub Actions CI**](https://github.com/Asikraam/DynotchFlow/actions).
 
 ---

@@ -10,11 +10,12 @@
 *Synced music lyrics · Normal Glow & Matte Minimalist themes · Google Calendar (`.ics`) · Weather & prayer alerts · Drag-and-drop file shelf — **under 50 MB RAM**.*
 
 [![Release](https://img.shields.io/github/v/release/Asikraam/DynotchFlow?style=for-the-badge&color=38bdf8&logo=github)](https://github.com/Asikraam/DynotchFlow/releases)
+[![Downloads](https://img.shields.io/github/downloads/Asikraam/DynotchFlow/total?style=for-the-badge&color=f59e0b&label=Downloads&logo=github)](https://github.com/Asikraam/DynotchFlow/releases)
 [![Windows CI](https://img.shields.io/github/actions/workflow/status/Asikraam/DynotchFlow/ci.yml?style=for-the-badge&label=Windows%20CI&logo=windows)](https://github.com/Asikraam/DynotchFlow/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)
 [![Idle RAM](https://img.shields.io/badge/Idle%20RAM-%3C%2050%20MB-a855f7?style=for-the-badge)](#under-the-hood)
 
-**English** · [Bahasa Indonesia](docs/README_ID.md)
+**English** · [Bahasa Indonesia](docs/README_ID.md) · [Changelog](CHANGELOG.md)
 
 [Download](#-download--install) · [Features](#-whats-inside) · [Gallery](#️-ui-gallery) · [10s Setup](#-10-second-setup) · [Run from Source](#-run-from-source-4-commands)
 
@@ -37,24 +38,24 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 
 | Platform | File | Who It Is For |
 | :--- | :--- | :--- |
-| **Windows 10 / 11 (x64)** | [`DynotchFlow-Setup-v1.0.0-win-x64.exe`](https://github.com/Asikraam/DynotchFlow/releases/latest) | **Recommended** — 1-click installer (creates Desktop & Start Menu shortcuts) |
-| **Windows 10 / 11 (x64)** | [`DynotchFlow-v1.0.0-win-x64-Portable.zip`](https://github.com/Asikraam/DynotchFlow/releases/latest) | **Portable** — Extract anywhere and run `DynotchFlow.exe` with no install |
+| **Windows 10 / 11 (x64)** | [`DynotchFlow-Setup-v1.0.1-win-x64.exe`](https://github.com/Asikraam/DynotchFlow/releases/latest) | **Recommended** — 1-click installer (creates Desktop & Start Menu shortcuts) |
+| **Windows 10 / 11 (x64)** | [`DynotchFlow-v1.0.1-win-x64-Portable.zip`](https://github.com/Asikraam/DynotchFlow/releases/latest) | **Portable** — Extract anywhere and run `DynotchFlow.exe` with no install |
 | **macOS / Linux** | *Source UI only* | Renderer runs from source; Cocoa/MPRIS2 bridges are on the roadmap |
 
 ### How to Install (No Coding Required)
-1. Download **`DynotchFlow-Setup-v1.0.0-win-x64.exe`** *(or the Portable `.zip`)* from [**Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
-2. Double-click the `.exe` to install and launch immediately.
+1. Download **`DynotchFlow-Setup-v1.0.1-win-x64.exe`** *(or the Portable `.zip`)* from [**Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
+2. Double-click the `.exe` to install and launch immediately. *(Updating from `v1.0.0`? Just run the new `.exe` directly — your settings, city & calendars stay untouched!)*
 3. *(Optional)* Verify the download checksum below.
 
 > **Seeing "Windows protected your PC"?** Open-source indie apps without a paid commercial certificate trigger Windows SmartScreen initially. Click **More info** → **Run anyway**, verify the SHA-256 checksum below, or inspect every build publicly in [**GitHub Actions**](https://github.com/Asikraam/DynotchFlow/actions).
 
 <details>
-<summary>SHA-256 Checksums (<code>v1.0.0</code> Windows x64)</summary>
+<summary>SHA-256 Checksums (<code>v1.0.1</code> Windows x64 · Released <code>2026-11-11</code>)</summary>
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `30D2F1E1A681391085E6F15754E308DF93E0F97F6BF2F6D340AE54276873A8D1` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `1116C7797F7663D90EC8FE3A3534924CA782F28462B57A3EE55B549D1D119594` |
+| `DynotchFlow-Setup-v1.0.1-win-x64.exe` | `25303108BD9FCBDB16B9C09032185FDE57630EF778C6F0A651DB4262A48EDA10` |
+| `DynotchFlow-v1.0.1-win-x64-Portable.zip` | `C37F0C59D6BE33B3D6E7AB60943D6339B7282A23E8950500054C6345B77A7AC3` |
 
 </details>
 
@@ -140,7 +141,7 @@ On first launch outside Indonesia, DynotchFlow automatically resolves your local
 | `Ctrl + Alt + N` | Quickly toggle island visibility on/off |
 | `Mouse Scroll` over pill | Step Windows master volume cleanly by `±2` |
 | `POST http://127.0.0.1:17420/push` | Push custom JSON toast alerts (`{"title":"Build Done","body":"Passed all checks","accent":"#38bdf8","duration":4500}`) |
-| `GET http://127.0.0.1:17420/health` | Local health check (`{"ok":true,"app":"DynotchFlow","version":"1.0.0"}`) |
+| `GET http://127.0.0.1:17420/health` | Local health check (`{"ok":true,"app":"DynotchFlow","version":"1.0.1"}`) |
 
 > All cross-origin browser requests (`Origin`, `OPTIONS`, `Sec-Fetch-Site: cross-site`) are automatically blocked with `HTTP 403` so external websites cannot spoof local notifications.
 

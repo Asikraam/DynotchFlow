@@ -15,8 +15,8 @@ using Windows.Storage.Streams;
 [assembly: AssemblyDescription("DynotchFlow Native WinRT Bridge")]
 [assembly: AssemblyProduct("DynotchFlow")]
 [assembly: AssemblyCompany("DynotchFlow")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
 
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIAudioEndpointVolume {

@@ -597,7 +597,7 @@ function startWebhookServer() {
       return;
     }
     if (req.method === 'GET' && req.url === '/health') {
-      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.0' }));
+      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.1' }));
       return;
     }
     if (req.method === 'POST' && req.url === '/push') {

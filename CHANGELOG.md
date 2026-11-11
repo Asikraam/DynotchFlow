@@ -2,6 +2,12 @@
 
 All notable changes to **DynotchFlow** are documented in this file.
 
+## [1.0.1] — 2026-11-11
+### Fixed & Improved
+- **Clean Player Source Badges (`renderer/app.js`):** Added `formatMediaSourceName()` with `SOURCE_APP_RULES` so Microsoft Store / UWP `AppUserModelId` strings (e.g., `SpotifyAB.SpotifyMusic__zpdnckdrzrea0!Spotify` → `Spotify`, `AppleInc.AppleMusicWin_...` → `Apple Music`, `Microsoft.ZuneMusic_...` → `Media Player`, `MSEdge._crx_...` → `Edge`) display crisp short app names instead of raw package IDs.
+- **Source Pill Overflow Guard (`renderer/styles.css`):** Added `max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;` on `.track-source` so unknown long player IDs never clip against the column divider.
+- **Documentation & Tracking Badges (`README.md`, `docs/README_ID.md`):** Added GitHub All-Releases `Downloads` badge and bumped build version metadata to `1.0.1`.
+
 ## [1.0.0] — 2026-11-11 (Initial Public Release)
 ### Added
 - **1-Click Standalone Installer (`installer/DynotchFlowSetup.cs`) & Portable ZIP:** Extracts runtime cleanly to `%LOCALAPPDATA%\Programs\DynotchFlow`, configures Desktop & Start Menu shortcuts, and launches immediately.
