@@ -1000,6 +1000,56 @@ function flashHud(iconHtml, label, pct, durationMs = 2200) {
 let lastAppliedArtSrc = '';
 let lastPlayIconState = null;
 
+const SOURCE_APP_RULES = [
+  [/spotify/i, 'Spotify'],
+  [/applemusic/i, 'Apple Music'],
+  [/appletv/i, 'Apple TV'],
+  [/itunes/i, 'iTunes'],
+  [/zunemusic|microsoft\.mediaplayer/i, 'Media Player'],
+  [/zunevideo/i, 'Movies & TV'],
+  [/youtube\s*music|ytmusic|th-ch\.youtube/i, 'YT Music'],
+  [/tidal/i, 'TIDAL'],
+  [/deezer/i, 'Deezer'],
+  [/amazon.*music/i, 'Amazon Music'],
+  [/soundcloud/i, 'SoundCloud'],
+  [/netflix/i, 'Netflix'],
+  [/msedge/i, 'Edge'],
+  [/chrome/i, 'Chrome'],
+  [/brave/i, 'Brave'],
+  [/firefox|mozilla/i, 'Firefox'],
+  [/opera/i, 'Opera'],
+  [/vivaldi/i, 'Vivaldi'],
+  [/\barc(\.exe)?$/i, 'Arc'],
+  [/\bzen(\.exe)?$/i, 'Zen'],
+  [/vlc/i, 'VLC'],
+  [/potplayer/i, 'PotPlayer'],
+  [/mpc-?hc/i, 'MPC-HC'],
+  [/mpc-?be/i, 'MPC-BE'],
+  [/foobar/i, 'foobar2000'],
+  [/aimp/i, 'AIMP'],
+  [/musicbee/i, 'MusicBee'],
+  [/whatsapp/i, 'WhatsApp'],
+  [/telegram/i, 'Telegram'],
+  [/discord/i, 'Discord'],
+  [/wmplayer/i, 'Windows Media']
+];
+
+function formatMediaSourceName(rawApp) {
+  const raw = String(rawApp || '').trim();
+  if (!raw) return 'Media';
+  for (const [re, label] of SOURCE_APP_RULES) {
+    if (re.test(raw)) return label;
+  }
+  // Fallback for other MSIX / UWP PackageFamilyName!AppId or desktop .exe
+  let clean = raw
+    .split('!')[0]
+    .replace(/\._crx_[a-z0-9]+$/i, '')
+    .replace(/_+[a-z0-9]{10,15}$/i, '')
+    .replace(/\.exe$/i, '');
+  if (clean.includes('.')) clean = clean.split('.').pop();
+  return clean.trim() || 'Media';
+}
+
 function renderMediaUi() {
   const hasMedia = Boolean(mediaState.active);
   document.getElementById('music-empty').classList.toggle('hidden', hasMedia);
@@ -1014,8 +1064,7 @@ function renderMediaUi() {
   if (hasMedia) {
     document.getElementById('exp-title').textContent = lyricsState.title || mediaState.title || '—';
     document.getElementById('exp-artist').textContent = lyricsState.artist || mediaState.artist || '—';
-    const appClean = (mediaState.app || '').split('!')[0].replace(/\.exe$/i, '') || 'Media';
-    document.getElementById('exp-source').textContent = appClean;
+    document.getElementById('exp-source').textContent = formatMediaSourceName(mediaState.app);
     const isPlaying = mediaState.status === 'Playing';
     if (isPlaying !== lastPlayIconState) {
       lastPlayIconState = isPlaying;

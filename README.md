@@ -53,8 +53,8 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `6A3DA93FE639E3C49E893CDDF7C719F7A0A03B1A08658D346BA80E56531B18B3` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `548B1ABAE853CD4F44BF226B143E656AC3B38419E14093B24C928683204745B5` |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `30D2F1E1A681391085E6F15754E308DF93E0F97F6BF2F6D340AE54276873A8D1` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `1116C7797F7663D90EC8FE3A3534924CA782F28462B57A3EE55B549D1D119594` |
 
 </details>
 
