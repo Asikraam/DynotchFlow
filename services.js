@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const net = require('net');
+const dns = require('dns');
 const { execFile } = require('child_process');
 
 const BMKG_ADM4_MAP = {
@@ -777,11 +779,69 @@ async function fetchCalendarEvents(icsUrl, localEvents = [], gcalAccount = '', c
   };
 }
 
+function isPrivateOrLocalIp(ip) {
+  const clean = String(ip || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (!clean) return true;
+  if (clean.startsWith('::ffff:')) {
+    return isPrivateOrLocalIp(clean.slice(7));
+  }
+  const kind = net.isIP(clean);
+  if (kind === 4) {
+    const parts = clean.split('.').map(Number);
+    const [a, b] = parts;
+    if (a === 0 || a === 10 || a === 127 || a >= 224) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+    return false;
+  }
+  if (kind === 6) {
+    if (clean === '::' || clean === '::1') return true;
+    if (clean.startsWith('fc') || clean.startsWith('fd') || clean.startsWith('fe8') || clean.startsWith('fe9') || clean.startsWith('fea') || clean.startsWith('feb')) return true;
+    return false;
+  }
+  return false;
+}
+
+async function assertPublicHttpsUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(String(rawUrl || '').trim());
+  } catch {
+    throw new Error('URL tidak valid');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Hanya URL HTTPS publik yang diizinkan');
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('Kredensial pada URL tidak diizinkan');
+  }
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) {
+    throw new Error('Host lokal tidak diizinkan');
+  }
+  if (net.isIP(host)) {
+    if (isPrivateOrLocalIp(host)) throw new Error('IP lokal/privat tidak diizinkan');
+    return parsed.toString();
+  }
+  try {
+    const addrs = await dns.promises.lookup(host, { all: true });
+    if (addrs.some(entry => isPrivateOrLocalIp(entry.address))) {
+      throw new Error('Domain mengarah ke IP lokal/privat');
+    }
+  } catch (err) {
+    if (err && /lokal|privat/i.test(err.message)) throw err;
+  }
+  return parsed.toString();
+}
+
 function resolveJsonPath(obj, dotPath) {
   if (!dotPath) return obj;
   let cur = obj;
   for (const part of dotPath.split('.').filter(Boolean)) {
-    if (cur == null) return undefined;
+    if (part === '__proto__' || part === 'constructor' || part === 'prototype') return undefined;
+    if (cur == null || !Object.prototype.hasOwnProperty.call(cur, part)) return undefined;
     cur = cur[part];
   }
   return cur;
@@ -790,7 +850,21 @@ function resolveJsonPath(obj, dotPath) {
 async function fetchCustomFeed(feed) {
   if (!feed || !feed.enabled || !feed.url) return null;
   try {
-    const json = await fetchJson(feed.url.trim(), 7000);
+    const safeUrl = await assertPublicHttpsUrl(feed.url);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    let json;
+    try {
+      const res = await fetch(safeUrl, {
+        signal: controller.signal,
+        redirect: 'error',
+        headers: { 'User-Agent': 'DynotchFlow/4.0 (Windows 11 Custom Dynamic Island)' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      json = await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
     const val = resolveJsonPath(json, feed.jsonPath || '');
     const formatted = typeof val === 'number'
       ? (Number.isInteger(val) ? val.toLocaleString('id-ID') : val.toLocaleString('id-ID', { maximumFractionDigits: 2 }))
