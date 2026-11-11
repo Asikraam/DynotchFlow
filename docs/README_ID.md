@@ -2,6 +2,10 @@
 
 [Back to English README](../README.md)
 
+<p align="center">
+  <img src="../assets/demo.gif" alt="Demo UI DynotchFlow V4" width="100%" />
+</p>
+
 **DynotchFlow V4** adalah aplikasi **Dynamic Island** untuk Windows 10 & 11 yang ringan (`~53 MB` RAM idle, `0%` CPU idle), memadukan UI Electron dengan **Native C# WinRT Bridge** (`NotchBridge.exe`).
 
 ## Cara Instal untuk Pengguna Umum (Tanpa Coding)

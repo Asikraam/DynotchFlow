@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/hero.svg" alt="DynotchFlow V4 Hero Preview" width="100%" />
+<img src="assets/demo.gif" alt="DynotchFlow V4 Live UI Demo" width="100%" />
 
 <br />
 
@@ -43,6 +43,31 @@ Most desktop Dynamic Island overlays run heavy polling scripts or leave ugly tra
 | **Weather & Prayer Times** | Atmospheric Apple-Weather-inspired sky effects (`Rain` / `Sun` / `Night`), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with configurable H-10m, H-5m & Adzan reminders. |
 | **Notch Shelf & Volume** | Drag-and-drop files, images, or clipboard notes into the island and drag files back out natively to Explorer, browsers, or chat apps. Scroll directly over the pill volume badge to step Windows Master Volume cleanly in even increments (`±2`). |
 | **Smart Auto-Hide** | Top-bezel cursor watcher (`Alt+H` / `Ctrl+Alt+H`) hides the pill cleanly above the screen edge for unobstructed full-screen screenshots; auto-hides only when a fullscreen app runs on the **same monitor** (Per-Monitor DPI V2 aware). |
+
+### UI Gallery (Real Renderings)
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/preview-music.png" alt="Music Player & Live Karaoke Lyrics" />
+      <br /><sub><b>Music &amp; Live Synced Lyrics</b> · Adaptive Cover Glow &amp; 60fps Wavy Scrubber</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/preview-calendar.png" alt="Multi-Calendar Google Calendar View" />
+      <br /><sub><b>Multi-Calendar (<code>.ics</code>)</b> · Category Filters, LIVE &amp; Countdown Pills</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="assets/preview-weather.png" alt="BMKG Weather & Kemenag Prayer Times" />
+      <br /><sub><b>Weather &amp; Prayer Times</b> · Atmospheric Sky FX, BMKG &amp; Kemenag RI</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/preview-shelf.png" alt="Notch Drag-and-Drop File Shelf" />
+      <br /><sub><b>Notch Shelf</b> · Native Drag-In / Drag-Out File &amp; Note Staging</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 

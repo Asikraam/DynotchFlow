@@ -13,3 +13,4 @@ All notable changes to **DynotchFlow** are documented in this file.
 ### Security & Hardening
 - Removed wildcard CORS headers (`Access-Control-Allow-Origin: *`) from the localhost webhook server.
 - Enforced `contextIsolation: true`, `nodeIntegration: false`, HTML escaping across dynamic renderer templates, and HTTP/HTTPS validation for external calendar event URLs.
+- Fixed flexbox `min-width` clamping on the wavy media scrubber canvas so duration timestamps never overlap the synced lyrics column.

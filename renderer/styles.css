@@ -609,6 +609,7 @@ button, input {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
   padding: 4px 12px 4px 2px;
 }
 
@@ -687,6 +688,8 @@ button, input {
   display: flex;
   align-items: center;
   gap: 7px;
+  width: 100%;
+  min-width: 0;
   margin: 2px 0;
 }
 
@@ -694,7 +697,8 @@ button, input {
   font-size: 10px;
   color: rgba(235, 235, 245, 0.65);
   font-variant-numeric: tabular-nums;
-  min-width: 28px;
+  min-width: 26px;
+  flex-shrink: 0;
 }
 
 #time-tot {
@@ -702,9 +706,10 @@ button, input {
 }
 
 .wavy-scrubber {
-  flex: 1;
+  flex: 1 1 0%;
+  width: 0;
+  min-width: 0;
   height: 20px;
-  width: 100%;
   cursor: pointer;
   display: block;
 }
