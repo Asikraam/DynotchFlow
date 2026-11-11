@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('notchApi', {
   connectGoogleCalendar: () => ipcRenderer.invoke('notch:connect-gcal'),
   openExternalUrl: (url) => ipcRenderer.send('notch:open-external', url),
   notifySchedule: (payload) => ipcRenderer.invoke('notch:notify-schedule', payload),
+  saveLyricSync: (payload) => ipcRenderer.invoke('notch:save-lyric-sync', payload),
   testWebhook: () => ipcRenderer.invoke('notch:test-webhook'),
   optimizeRam: () => ipcRenderer.send('notch:optimize-ram'),
   quitApp: () => ipcRenderer.send('notch:quit'),

@@ -8,10 +8,10 @@ All notable changes to **DynotchFlow** are documented in this file.
 - **Native WinRT C# Bridge (`NotchBridge.cs`):** Compiled 64-bit WinRT GSMTC & CoreAudio bridge (`~6 MB` RAM) with **Per-Monitor DPI V2** and same-monitor fullscreen detection.
 - **Smooth Anti-Aliased Frameless Corners:** Padded `SetWindowRgn` clipping paired with native `MakeFramelessClean` caption removal eliminates top DWM caption halo bars.
 - **Hybrid Pill Lyrics & Proportional `30px` / `34px` / `40px` Scaling:** Automatically centers crisp short lyric lines without side mask fade, smoothly activates marquee on overflow, and scales pill typography/EQ bars across all three heights.
-- **Zero-RAM YouTube / DJ / Slowed+Reverb Lyric Engine (`services.js` + `renderer/app.js`):**
-  - Strips YouTube remix/upload suffixes (`Slowed + Reverb`, `Sped Up`, `Nightcore`, `Full Bass`, `// Lirik`, `#shorts`) and resolves swapped *Title — Artist* formatting automatically.
-  - Multi-pass LRCLIB matching + `lyrics.ovh` plain fallback without extra memory overhead.
-  - Automatic linear tempo scaling for Slowed/Sped-Up tracks plus manual `-0.5s` / `Reset` / `+0.5s` fine calibration bar.
+- **Universal Unofficial / Live Video Lyrics & 1-Tap Sync (`services.js`, `main.js`, `preload.js`, `renderer/`):**
+  - Strips bracketed & unbracketed live/unofficial tags (`Live at ...`, `Stage`, `Fancam`, `Acoustic Cover`, `Slowed + Reverb`, `Sped Up`, `Full Bass`, `// Lirik`, `#shorts`) and resolves swapped *Artist — Title* formatting automatically.
+  - Multi-source zero-RAM waterfall: **LRCLIB -> iTunes canonical spelling -> Kugou LRC (Unicode similarity guarded) -> `lyrics.ovh`**, with relaxed live duration weighting.
+  - Added **1-Tap `"Pas-in"` / Right-Click line snap**, **2-Point Live Band Tempo Auto-Warp (`0.78x–1.28x`)**, compact `-5s / -0.5 / Pas-in / +0.5 / +5s` controls, active sync banner (`#lyrics-tap-banner`), and per-video JSON calibration persistence (`lyrics-sync.json`, capped at 200 entries).
 - **Multi-Calendar (`.ics`), Atmospheric Weather & Prayer Alerts:** Single or multi-feed iCal URL parsing (`RRULE` + `EXDATE`), BMKG + Open-Meteo sky effects, Kemenag RI prayer countdowns & notifications, and Drag-In/Drag-Out Notch Shelf.
 
 ### Security & Performance

@@ -33,10 +33,10 @@
 ## Fitur Utama & Pembaruan Terkini
 
 - **Lirik Sinkron Hybrid (Auto-Center + Marquee):** Baris lirik pendek/sedang tampil rata tengah dengan teks tajam tanpa bayangan tepi; baris lirik panjang otomatis bergeser halus (*marquee*). Ukuran teks, equalizer, dan pill ikut menyesuaikan pilihan tinggi **`30px` / `34px` / `40px`**.
-- **Pencocokan & Kalibrasi Lirik DJ / YouTube / Slowed+Reverb (0 MB Tambahan RAM):**
-  - Membersihkan embel-embel judul YouTube/remix (`Slowed + Reverb`, `Sped Up`, `Full Bass`, `// Lirik`, `#shorts`) dan memperbaiki urutan *Artis — Judul* saat lagu diputar dari browser.
-  - Otomatis menghitung **skala tempo linier** saat versi *Slowed* (`~0.85x`) atau *Sped-Up* (`~1.25x`) dicocokkan dengan lirik studio.
-  - Dilengkapi tombol **`-0.5s` / `Reset` / `+0.5s`** di bawah kontrol pemutar musik jika perlu kalibrasi cepat pada lagu DJ tertentu.
+- **Pencocokan & Kalibrasi Lirik Universal (Konser Live, Fancam, Cover, DJ, YouTube Resmi/Tidak Resmi — Tetap `< 50 MB` RAM):**
+  - Waterfall pencarian multi-sumber (**LRCLIB -> ejaan resmi iTunes -> Kugou LRC -> `lyrics.ovh`**) lengkap dengan pembersih judul `Live at ...`, `Fancam`, `Acoustic Cover`, `Slowed + Reverb`, `Sped Up`, dan `Full Bass`.
+  - Otomatis menghitung **skala tempo linier** pada versi *Slowed* (`~0.85x`) / *Sped-Up* (`~1.25x`), sekaligus menghapus penalti durasi agar lirik studio tetap ketemu walau video konser diawali obrolan / intro panjang.
+  - **1-Tap `"Pas-in"` & Klik Kanan Baris Lirik + Auto-Warp Tempo 2-Titik:** Jika penyanyi mengobrol dulu di awal video live sehingga lirik mendahului vokal, cukup **klik kanan baris lirik** *(atau klik **`Pas-in`** → klik baris)* tepat saat vokal masuk! Kalibrasi ke-2 di tengah lagu otomatis menghitung kecepatan band live (`0.78x–1.28x`), tersimpan permanen per video (`lyrics-sync.json`), plus tombol cepat **`-5s / -0.5 / Pas-in / +0.5 / +5s`**.
 - **Tepi Halus Tanpa Kotak DWM:** Pemotongan wilayah jendela `SetWindowRgn` ber-padding dan strip titlebar win32 menghasilkan sudut lengkung bersih tanpa garis abu-abu di tepi atas.
 - **Multi-Kalender `.ics`, Cuaca BMKG & Jadwal Sholat Kemenag RI:** Efek langit dinamis (Hujan, Cerah/Senja, Malam), pengingat Adzan & acara mendadak, serta **Shelf Drag-In / Drag-Out** file & catatan.
 

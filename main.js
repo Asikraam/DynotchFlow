@@ -1050,6 +1050,14 @@ function setupIpc() {
     return externalState.calendar;
   });
 
+  ipcMain.handle('notch:save-lyric-sync', async (_e, payload) => {
+    const saved = services.saveLyricSync(LYRICS_CACHE, payload);
+    if (lastLyricsResult && payload && lastLyricsResult.syncKey === payload.syncKey) {
+      lastLyricsResult = { ...lastLyricsResult, savedSync: saved };
+    }
+    return saved;
+  });
+
   ipcMain.handle('notch:test-webhook', async () => {
     sendToRenderer('bridge:toast', {
       title: 'Webhook Push OK',

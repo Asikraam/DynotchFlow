@@ -53,6 +53,9 @@ let hoverLeaveTimer = null;
 let activeLyricIdx = -1;
 let lastPillText = '';
 let lyricOffsetSec = 0;
+let tapSyncMode = false;
+let syncAnchor1 = null;
+let liveTempoScale = 1.0;
 
 const DEFAULT_VINYL_ART = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
@@ -755,6 +758,7 @@ function renderLyricsList() {
   const listEl = document.getElementById('lyrics-list');
   const statusEl = document.getElementById('lyrics-status');
   listEl.innerHTML = '';
+  listEl.classList.toggle('tap-mode', tapSyncMode);
   cachedLyricNodes = [];
   activeLyricIdx = -1;
 
@@ -772,7 +776,21 @@ function renderLyricsList() {
       div.className = 'lyric-line';
       div.textContent = line.text;
       div.dataset.idx = String(idx);
-      div.addEventListener('click', () => window.notchApi.mediaAction('seek', line.time));
+      div.title = 'Klik: Lompat ke bagian ini | Klik kanan / Alt+Klik: Pas-in lirik di detik sekarang';
+      div.addEventListener('click', (e) => {
+        if (tapSyncMode || e.altKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          snapLyricToLine(line.time);
+          return;
+        }
+        window.notchApi.mediaAction('seek', videoTimeForLrc(line.time));
+      });
+      div.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        snapLyricToLine(line.time);
+      });
       frag.appendChild(div);
       cachedLyricNodes.push(div);
     });
@@ -789,7 +807,7 @@ function renderLyricsList() {
     });
     listEl.appendChild(frag);
   } else {
-    statusEl.textContent = mediaState.active ? 'Lirik sinkron tidak ditemukan di LRCLIB.' : '';
+    statusEl.textContent = mediaState.active ? 'Lirik sinkron belum ditemukan untuk video ini.' : '';
     statusEl.classList.remove('hidden');
   }
 }
@@ -814,32 +832,195 @@ function getLyricTempoScale(durSec) {
   return 1.0;
 }
 
-function updateLyricSyncLabel() {
-  const row = document.getElementById('lyric-sync-row');
-  const lbl = document.getElementById('btn-sync-reset');
-  if (!row || !lbl) return;
-  const hasSynced = Boolean(lyricsState.found && lyricsState.lines && lyricsState.lines.length > 0);
-  row.classList.toggle('hidden', !hasSynced);
-  if (!hasSynced) return;
-  const scale = getLyricTempoScale(Math.max(0, mediaState.duration || 0));
-  const offTxt = `${lyricOffsetSec >= 0 ? '+' : ''}${lyricOffsetSec.toFixed(1)}s`;
-  lbl.textContent = scale !== 1.0 ? `${scale.toFixed(2)}x · ${offTxt}` : (lyricOffsetSec === 0 ? 'Sync 0.0s' : `Sync ${offTxt}`);
+function computeSyncPos(pos, dur) {
+  if (syncAnchor1) {
+    return Math.max(0, syncAnchor1.lrc + (pos - syncAnchor1.vid) * liveTempoScale + lyricOffsetSec);
+  }
+  return Math.max(0, pos * getLyricTempoScale(dur) + lyricOffsetSec);
 }
 
+function videoTimeForLrc(lineTime) {
+  if (syncAnchor1) {
+    return Math.max(0, syncAnchor1.vid + (lineTime - syncAnchor1.lrc - lyricOffsetSec) / Math.max(0.5, liveTempoScale));
+  }
+  const dur = Math.max(0, mediaState.duration || 0);
+  return Math.max(0, (lineTime - lyricOffsetSec) / Math.max(0.5, getLyricTempoScale(dur)));
+}
+
+function getEffectiveSyncOffset() {
+  return syncAnchor1 ? (syncAnchor1.lrc - syncAnchor1.vid + lyricOffsetSec) : lyricOffsetSec;
+}
+
+function persistCurrentSync(reset = false) {
+  if (!lyricsState || !lyricsState.syncKey) return;
+  window.notchApi.saveLyricSync?.({
+    syncKey: lyricsState.syncKey,
+    reset: Boolean(reset),
+    offsetSec: lyricOffsetSec,
+    scale: liveTempoScale,
+    anchor1: syncAnchor1
+  }).catch(() => {});
+}
+
+function applySavedSync(saved) {
+  tapSyncMode = false;
+  if (saved && typeof saved === 'object') {
+    lyricOffsetSec = Number(saved.offsetSec) || 0;
+    liveTempoScale = (saved.scale >= 0.78 && saved.scale <= 1.28) ? Number(saved.scale) : 1.0;
+    syncAnchor1 = (saved.anchor1 && Number.isFinite(Number(saved.anchor1.vid)) && Number.isFinite(Number(saved.anchor1.lrc)))
+      ? { vid: Number(saved.anchor1.vid), lrc: Number(saved.anchor1.lrc) }
+      : null;
+  } else {
+    lyricOffsetSec = 0;
+    liveTempoScale = 1.0;
+    syncAnchor1 = null;
+  }
+}
+
+function resetLyricSync() {
+  tapSyncMode = false;
+  lyricOffsetSec = 0;
+  liveTempoScale = 1.0;
+  syncAnchor1 = null;
+  activeLyricIdx = -1;
+  persistCurrentSync(true);
+  updateLyricSyncLabel();
+}
+
+function snapLyricToLine(lineTime) {
+  const pos = currentPlaybackPos();
+  const targetLrc = Number(lineTime) || 0;
+  if (syncAnchor1) {
+    const dVid = pos - syncAnchor1.vid;
+    const dLrc = targetLrc - syncAnchor1.lrc;
+    if (Math.abs(dVid) >= 20 && Math.sign(dVid) * dLrc > 12) {
+      const rawScale = dLrc / dVid;
+      if (rawScale >= 0.78 && rawScale <= 1.28) {
+        liveTempoScale = Number(rawScale.toFixed(3));
+        lyricOffsetSec = 0;
+        tapSyncMode = false;
+        activeLyricIdx = -1;
+        persistCurrentSync(false);
+        updateLyricSyncLabel();
+        return;
+      }
+    }
+  }
+  syncAnchor1 = { vid: Number(pos.toFixed(2)), lrc: Number(targetLrc.toFixed(2)) };
+  liveTempoScale = 1.0;
+  lyricOffsetSec = 0;
+  tapSyncMode = false;
+  activeLyricIdx = -1;
+  persistCurrentSync(false);
+  updateLyricSyncLabel();
+}
+
+function nudgeLyricOffset(deltaSec) {
+  lyricOffsetSec = Math.max(-180, Math.min(180, Math.round((lyricOffsetSec + deltaSec) * 10) / 10));
+  activeLyricIdx = -1;
+  persistCurrentSync(false);
+  updateLyricSyncLabel();
+}
+
+function updateLyricSyncLabel() {
+  const row = document.getElementById('lyric-sync-row');
+  const tapBtn = document.getElementById('btn-sync-tap');
+  const bannerEl = document.getElementById('lyrics-tap-banner');
+  const bannerMsg = document.getElementById('lyrics-tap-msg');
+  const resetMiniBtn = document.getElementById('btn-sync-reset');
+  const listEl = document.getElementById('lyrics-list');
+  if (!row || !tapBtn) return;
+
+  const hasSynced = Boolean(lyricsState.found && lyricsState.lines && lyricsState.lines.length > 0);
+  row.classList.toggle('hidden', !hasSynced);
+  if (listEl) listEl.classList.toggle('tap-mode', tapSyncMode);
+
+  if (!hasSynced) {
+    if (bannerEl) bannerEl.classList.add('hidden');
+    return;
+  }
+
+  const autoScale = getLyricTempoScale(Math.max(0, mediaState.duration || 0));
+  const activeScale = syncAnchor1 ? liveTempoScale : autoScale;
+  const eff = getEffectiveSyncOffset();
+  const isCalibrated = Boolean(syncAnchor1 || lyricOffsetSec !== 0 || activeScale !== 1.0);
+
+  tapBtn.classList.toggle('tap-active', tapSyncMode);
+  tapBtn.classList.toggle('is-calibrated', !tapSyncMode && isCalibrated);
+
+  if (tapSyncMode) {
+    tapBtn.textContent = 'Klik Baris!';
+  } else if (isCalibrated) {
+    const offShort = `${eff >= 0 ? '+' : ''}${Math.abs(eff) >= 10 ? eff.toFixed(0) : eff.toFixed(1)}s`;
+    tapBtn.textContent = activeScale !== 1.0 ? `${activeScale.toFixed(2)}x ${offShort}` : offShort;
+  } else {
+    tapBtn.textContent = 'Pas-in';
+  }
+
+  if (bannerEl && bannerMsg && resetMiniBtn) {
+    if (tapSyncMode) {
+      bannerEl.classList.remove('hidden');
+      bannerMsg.textContent = 'Mode Pas-in: klik baris yg baru mulai dinyanyikan';
+      resetMiniBtn.textContent = 'Batal';
+      resetMiniBtn.classList.remove('hidden');
+    } else if (syncAnchor1) {
+      const offTxt = `${eff >= 0 ? '+' : ''}${eff.toFixed(1)}s`;
+      bannerEl.classList.remove('hidden');
+      bannerMsg.textContent = liveTempoScale !== 1.0
+        ? `Live Tempo ${liveTempoScale.toFixed(2)}x (${offTxt})`
+        : `Sync ${offTxt} · klik kanan baris jika geser`;
+      resetMiniBtn.textContent = 'Reset';
+      resetMiniBtn.classList.remove('hidden');
+    } else if (lyricOffsetSec !== 0) {
+      const offTxt = `${lyricOffsetSec >= 0 ? '+' : ''}${lyricOffsetSec.toFixed(1)}s`;
+      bannerEl.classList.remove('hidden');
+      bannerMsg.textContent = `Sync ${offTxt} · klik kanan baris untuk Pas-in`;
+      resetMiniBtn.textContent = 'Reset';
+      resetMiniBtn.classList.remove('hidden');
+    } else if (lyricsState.isLiveTrack) {
+      bannerEl.classList.remove('hidden');
+      bannerMsg.textContent = 'Video Live: klik kanan / "Pas-in" baris saat vokal masuk';
+      resetMiniBtn.classList.add('hidden');
+    } else {
+      bannerEl.classList.add('hidden');
+    }
+  }
+}
+
+document.getElementById('btn-sync-m5')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  nudgeLyricOffset(-5);
+});
 document.getElementById('btn-sync-minus')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  lyricOffsetSec = Math.max(-30, Math.round((lyricOffsetSec - 0.5) * 10) / 10);
-  updateLyricSyncLabel();
+  nudgeLyricOffset(-0.5);
 });
 document.getElementById('btn-sync-plus')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  lyricOffsetSec = Math.min(30, Math.round((lyricOffsetSec + 0.5) * 10) / 10);
+  nudgeLyricOffset(0.5);
+});
+document.getElementById('btn-sync-p5')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  nudgeLyricOffset(5);
+});
+document.getElementById('btn-sync-tap')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  tapSyncMode = !tapSyncMode;
   updateLyricSyncLabel();
+});
+document.getElementById('btn-sync-tap')?.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  resetLyricSync();
 });
 document.getElementById('btn-sync-reset')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  lyricOffsetSec = 0;
-  updateLyricSyncLabel();
+  if (tapSyncMode && !syncAnchor1 && lyricOffsetSec === 0) {
+    tapSyncMode = false;
+    updateLyricSyncLabel();
+  } else {
+    resetLyricSync();
+  }
 });
 
 // 120ms lyric & timeline interpolation ticker (throttled idle clock & zero ReferenceError)
@@ -855,8 +1036,7 @@ setInterval(() => {
 
   const pos = currentPlaybackPos();
   const dur = Math.max(0, mediaState.duration || 0);
-  const tempoScale = getLyricTempoScale(dur);
-  const syncPos = Math.max(0, pos * tempoScale + lyricOffsetSec);
+  const syncPos = computeSyncPos(pos, dur);
   if (!isSeeking && isExpanded) {
     timeCurEl.textContent = fmtSec(pos);
     timeTotEl.textContent = isHoveringScrubber
@@ -1603,10 +1783,17 @@ window.notchApi.onMediaUpdate((d) => {
 let prevLyricTrackKey = '';
 window.notchApi.onLyricsUpdate((d) => {
   lyricsState = d || { found: false, lines: [], plain: [] };
-  const nextKey = `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
-  if (lyricsState.loading || (nextKey !== '|' && nextKey !== prevLyricTrackKey)) {
-    lyricOffsetSec = 0;
-    if (nextKey !== '|') prevLyricTrackKey = nextKey;
+  const nextKey = lyricsState.syncKey || `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
+  if (lyricsState.loading) {
+    applySavedSync(null);
+  } else if (!lyricsState.found) {
+    prevLyricTrackKey = '';
+    applySavedSync(null);
+  } else if (nextKey && nextKey !== '|' && nextKey !== prevLyricTrackKey) {
+    prevLyricTrackKey = nextKey;
+    applySavedSync(lyricsState.savedSync);
+  } else if (lyricsState.savedSync) {
+    applySavedSync(lyricsState.savedSync);
   }
   renderLyricsList();
   updateLyricSyncLabel();
@@ -1671,7 +1858,14 @@ window.notchApi.getState().then(s => {
   if (s.config) { config = s.config; renderSettingsUi(); }
   if (s.shelf) { shelfState = s.shelf; renderShelfUi(); }
   if (s.external) { externalState = s.external; renderExternalUi(); }
-  if (s.lyrics) { lyricsState = s.lyrics; renderLyricsList(); updateLyricSyncLabel(); }
+  if (s.lyrics) {
+    lyricsState = s.lyrics;
+    const initKey = lyricsState.syncKey || `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
+    if (initKey && initKey !== '|') prevLyricTrackKey = initKey;
+    applySavedSync(lyricsState.savedSync);
+    renderLyricsList();
+    updateLyricSyncLabel();
+  }
   if (s.media) { mediaState = s.media; renderMediaUi(); }
   updateClockAndAlert();
 });

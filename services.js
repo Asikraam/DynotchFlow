@@ -94,6 +94,7 @@ function detectTempoVariant(rawText) {
   const s = String(rawText || '').toLowerCase();
   if (/\b(?:slowed|reverb|slow\s*version|0\.[6-9]\d?x)\b/i.test(s)) return 'slowed';
   if (/\b(?:sped\s*up|speed\s*up|nightcore|1\.[1-4]\d?x)\b/i.test(s)) return 'spedup';
+  if (/\b(?:live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|version|ver\.|recording|set|fest|festival|tour)|live\b|fancam|unplugged|acoustic\s+(?:cover|version|session|live)|cover\s+(?:by|oleh)|unofficial\s+live)\b/i.test(s)) return 'live';
   if (/\b(?:dj\s+|remix|bootleg|jedag\s*jedug|full\s*bass|bass\s*boost(?:ed)?|mashup|koplo)\b/i.test(s)) return 'remix';
   return null;
 }
@@ -102,9 +103,11 @@ function stripRemixNoise(str) {
   return String(str || '')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ' ')
     .replace(/\.(mp3|flac|wav|m4a|ogg|opus|mp4|mkv|webm)$/i, '')
-    .replace(/\s*[\(\[\{][^)\]}]*(?:official|music\s*video|lyric|lirik|visualizer|mv|hd|hq|4k|live|remaster|feat\.|ft\.|prod\.|slowed|reverb|sped\s*up|speed\s*up|nightcore|remix|bootleg|jedag|bass|tiktok|viral|cover|mix|edit|karaoke|instrumental|8d|audio|sub\s*indo|terjemahan)[^)\]}]*[\)\]\}]/gi, ' ')
+    .replace(/\s*[\(\[\{][^)\]}]*(?:official|music\s*video|lyric|lirik|visualizer|mv|hd|hq|4k|8k|live|concert|konser|festival|fest\b|tour|stage|session|acoustic|akustik|unplugged|fancam|recorded|remaster|feat\.|ft\.|prod\.|slowed|reverb|sped\s*up|speed\s*up|nightcore|remix|bootleg|jedag|bass|tiktok|viral|cover|mix|edit|karaoke|instrumental|8d|audio|sub\s*indo|terjemahan)[^)\]}]*[\)\]\}]/gi, ' ')
     .replace(/\s*(?:\/\/|\||#|•|〜|~).*$/g, '')
-    .replace(/\b(?:slowed\s*(?:&|\+|and|with)?\s*reverb|slowed|reverb|sped\s*up|speed\s*up|nightcore|jedag\s*jedug|full\s*bass|bass\s*boost(?:ed)?|tiktok\s*viral|viral\s*tiktok|remix|bootleg|lirik\s*terjemahan|lirik\s*lagu|lyric\s*video|official\s*(?:music\s*)?(?:video|audio)|music\s*video|full\s*album|8d\s*audio)\b/gi, ' ')
+    .replace(/\s+(?:live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|akustik|version|ver\.|recording|set|fest|festival|tour)\b.*|@\s*[\w\s.&-]+$|acoustic\s+(?:cover|version|session|live)\b.*|cover\s+(?:by|oleh)\s+.*|recorded\s+(?:at|live)\s+.*|fancam\b.*|unofficial\b.*)$/i, '')
+    .replace(/\s+(?:live|fancam|cover|unplugged)$/i, '')
+    .replace(/\b(?:slowed\s*(?:&|\+|and|with)?\s*reverb|slowed|reverb|sped\s*up|speed\s*up|nightcore|jedag\s*jedug|full\s*bass|bass\s*boost(?:ed)?|tiktok\s*viral|viral\s*tiktok|remix|bootleg|lirik\s*terjemahan|lirik\s*lagu|lyric\s*video|video\s*lirik|official\s*(?:music\s*)?(?:video|audio|live)|music\s*video|full\s*album|8d\s*audio)\b/gi, ' ')
     .replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
@@ -115,19 +118,20 @@ function cleanTrackInfo(rawTitle, rawArtist) {
   let artist = (rawArtist || '').replace(/\s*-\s*Topic$/i, '').trim();
   const tempoKind = detectTempoVariant(`${rawTitle || ''} ${rawArtist || ''}`);
 
-  const junkRe = /\s*[\(\[]\s*(?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer)|lyrics?|lirik|mv|hd|4k|live(?:\s+at.*)?|remastered.*|feat\..*|ft\..*|prod\..*|slowed.*|sped\s*up.*|nightcore.*|remix.*)\s*[\)\]]/gi;
+  const junkRe = /\s*[\(\[\{]\s*(?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer)|lyrics?|lirik|mv|hd|hq|4k|8k|live(?:\s+(?:at|in|on|from|@).*)?|concert.*|konser.*|fancam.*|unplugged.*|acoustic.*|remastered.*|feat\..*|ft\..*|prod\..*|slowed.*|sped\s*up.*|nightcore.*|remix.*)\s*[\)\]\}]/gi;
   title = title.replace(junkRe, '').replace(/\s*(?:\/\/|\|)\s*.*$/, '').trim();
 
   let altSwapped = null;
   // Handle "Artist - Song Title" or "Song Title - Artist" common on YouTube / GSMTC
-  const dashIdx = title.indexOf(' - ');
-  if (dashIdx > 0 && dashIdx < title.length - 3) {
+  const dashMatch = /\s+[-–—]\s+/.exec(title);
+  if (dashMatch && dashMatch.index > 0 && dashMatch.index + dashMatch[0].length < title.length) {
+    const dashIdx = dashMatch.index;
     const left = title.slice(0, dashIdx).trim();
-    const right = title.slice(dashIdx + 3).trim();
+    const right = title.slice(dashIdx + dashMatch[0].length).trim();
     const artistLow = artist.toLowerCase();
     const leftLow = left.toLowerCase();
     const rightLow = right.toLowerCase();
-    const isGenericArtist = !artist || /youtube|chrome|msedge|brave|opera|firefox|vlc|browser|music\s*channel|official|vibes|records|galau|santai/i.test(artistLow);
+    const isGenericArtist = !artist || /youtube|chrome|msedge|brave|opera|firefox|vlc|browser|music\s*channel|official|vibes|records|galau|santai|konser|concert|live|fancam|akustik|acoustic|corner|fest|stage|media|musik/i.test(artistLow);
 
     if (artistLow && (rightLow.includes(artistLow) || artistLow.includes(rightLow)) && !leftLow.includes(artistLow)) {
       title = left;
@@ -210,47 +214,218 @@ async function fetchText(url, timeoutMs = 8000) {
   }
 }
 
+function titleSim(a, b) {
+  const cleanTokens = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+  const collapse = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const ca = collapse(a);
+  const cb = collapse(b);
+  if (!ca || !cb) return 0;
+  if (ca === cb) return 1.0;
+  if (ca.length >= 5 && cb.length >= 5 && (ca.includes(cb) || cb.includes(ca))) {
+    return (Math.min(ca.length, cb.length) / Math.max(ca.length, cb.length)) * 0.95;
+  }
+  const sa = new Set(cleanTokens(a));
+  const sb = new Set(cleanTokens(b));
+  if (sa.size === 0 || sb.size === 0) return 0;
+  let inter = 0;
+  for (const t of sa) if (sb.has(t)) inter++;
+  return inter / Math.max(sa.size, sb.size);
+}
+
+function makeSyncKey(rawTitle, durationSec = 0) {
+  const clean = String(rawTitle || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 72);
+  const durBucket = durationSec > 10 ? Math.round(Number(durationSec) / 5) * 5 : 0;
+  return crypto.createHash('sha1').update(`${clean}|${durBucket}`).digest('hex').slice(0, 20);
+}
+
+function getSyncMapPath(cacheDir) {
+  if (!cacheDir) return '';
+  return path.join(path.dirname(cacheDir), 'lyrics-sync.json');
+}
+
+function loadLyricSyncMap(cacheDir) {
+  try {
+    const file = getSyncMapPath(cacheDir);
+    if (!file || !fs.existsSync(file)) return {};
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function getLyricSync(cacheDir, syncKey) {
+  if (!cacheDir || !syncKey) return null;
+  const map = loadLyricSyncMap(cacheDir);
+  const item = map[syncKey];
+  return item && typeof item === 'object' ? item : null;
+}
+
+function saveLyricSync(cacheDir, payload) {
+  try {
+    const file = getSyncMapPath(cacheDir);
+    if (!file || !payload || !payload.syncKey) return null;
+    const map = loadLyricSyncMap(cacheDir);
+    if (payload.reset) {
+      delete map[payload.syncKey];
+    } else {
+      const cleanAnchor = (payload.anchor1 && Number.isFinite(Number(payload.anchor1.vid)) && Number.isFinite(Number(payload.anchor1.lrc)))
+        ? { vid: Number(Number(payload.anchor1.vid).toFixed(3)), lrc: Number(Number(payload.anchor1.lrc).toFixed(3)) }
+        : null;
+      const scaleVal = Number(payload.scale);
+      map[payload.syncKey] = {
+        offsetSec: Number(Number(payload.offsetSec || 0).toFixed(2)),
+        scale: (Number.isFinite(scaleVal) && scaleVal >= 0.78 && scaleVal <= 1.28) ? Number(scaleVal.toFixed(3)) : 1.0,
+        anchor1: cleanAnchor,
+        updatedAt: Date.now()
+      };
+      const keys = Object.keys(map);
+      if (keys.length > 200) {
+        keys.sort((a, b) => (map[b].updatedAt || 0) - (map[a].updatedAt || 0));
+        for (let i = 200; i < keys.length; i++) delete map[keys[i]];
+      }
+    }
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(map), 'utf8');
+    return map[payload.syncKey] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCanonicalViaItunes(artist, title) {
+  const candidates = [];
+  if (artist && title) candidates.push(`${artist} ${title}`.trim());
+  if (title) candidates.push(title);
+  for (const q of candidates) {
+    try {
+      const res = await fetchJson(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=4`, 4500);
+      const list = Array.isArray(res && res.results) ? res.results : [];
+      let best = null;
+      let bestSim = 0;
+      for (const item of list) {
+        const ts = titleSim(title, item.trackName);
+        if (ts < 0.45) continue;
+        const as = artist ? titleSim(artist, item.artistName) : 0.3;
+        const combined = ts * 0.7 + as * 0.3;
+        if (combined > bestSim) {
+          bestSim = combined;
+          best = item;
+        }
+      }
+      if (best) {
+        return {
+          title: best.trackName,
+          artist: best.artistName,
+          duration: (best.trackTimeMillis || 0) / 1000
+        };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function fetchKugouLyrics(artist, title, durationSec) {
+  const query = `${artist || ''} ${title || ''}`.trim();
+  if (!query) return null;
+  try {
+    const searchUrl = `https://mobileservice.kugou.com/api/v3/search/song?format=json&keyword=${encodeURIComponent(query)}&page=1&pagesize=4`;
+    const searchRes = await fetchJson(searchUrl, 4500);
+    const items = (searchRes && searchRes.data && searchRes.data.info) || [];
+    let bestSong = null;
+    let bestScore = -1;
+    for (const s of items) {
+      if (!s || !s.hash) continue;
+      const tSim = titleSim(title, s.songname);
+      if (tSim < 0.50) continue;
+      const aSim = artist ? titleSim(artist, s.singername) : 0.2;
+      const sc = tSim * 65 + aSim * 35;
+      if (sc > bestScore) {
+        bestScore = sc;
+        bestSong = s;
+      }
+    }
+    if (!bestSong) return null;
+
+    const kDur = Number(bestSong.duration || durationSec || 0) * 1000;
+    const candRes = await fetchJson(
+      `https://krcs.kugou.com/search?ver=1&man=yes&client=mobi&keyword=&duration=${Math.round(kDur)}&hash=${encodeURIComponent(bestSong.hash)}`,
+      4500
+    );
+    const cand = candRes && Array.isArray(candRes.candidates) ? candRes.candidates[0] : null;
+    if (!cand || !cand.id || !cand.accesskey) return null;
+
+    const dlRes = await fetchJson(
+      `https://lyrics.kugou.com/download?ver=1&client=pc&id=${encodeURIComponent(cand.id)}&accesskey=${encodeURIComponent(cand.accesskey)}&fmt=lrc&charset=utf8`,
+      4500
+    );
+    if (!dlRes || !dlRes.content) return null;
+    const lrcText = Buffer.from(dlRes.content, 'base64').toString('utf8');
+    if (!/\[\d{1,3}:\d{2}/.test(lrcText)) return null;
+    return {
+      syncedLyrics: lrcText,
+      plainLyrics: '',
+      trackName: bestSong.songname || title,
+      artistName: bestSong.singername || artist,
+      duration: Number(bestSong.duration || 0)
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   const { title, artist, baseTitle, baseArtist, tempoKind, altSwapped } = cleanTrackInfo(rawTitle, rawArtist);
   const queryTitle = baseTitle || title;
   const queryArtist = baseArtist || artist;
-  if (!queryTitle) return { found: false, lines: [], plain: [], title, artist };
+  const syncKey = makeSyncKey(rawTitle || queryTitle, durationSec);
+  const isLiveTrack = tempoKind === 'live';
+  if (!queryTitle) return { found: false, lines: [], plain: [], title, artist, isLiveTrack, syncKey, savedSync: null };
 
-  const cacheKey = crypto.createHash('sha1').update(`v2|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}`).digest('hex');
+  const cacheKey = crypto.createHash('sha1').update(`v3|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}`).digest('hex');
   const cacheFile = path.join(cacheDir, `${cacheKey}.json`);
   try {
     if (fs.existsSync(cacheFile)) {
       const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-      if (cached && cached.cacheV === 2 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
-        return { ...cached, title: queryTitle, artist: queryArtist, tempoKind, fromCache: true };
+      if (cached && cached.cacheV === 3 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
+        return {
+          ...cached,
+          title: cached.trackName || queryTitle,
+          artist: cached.artistName || queryArtist,
+          tempoKind,
+          isLiveTrack,
+          syncKey,
+          savedSync: getLyricSync(cacheDir, syncKey),
+          fromCache: true
+        };
       }
     }
   } catch {}
 
   const pickBest = (candidates, tgtTitle = queryTitle, tgtArtist = queryArtist) => {
     if (!Array.isArray(candidates) || candidates.length === 0) return null;
-    const tLow = String(tgtTitle || '').toLowerCase();
-    const aLow = String(tgtArtist || '').toLowerCase();
     let best = null;
     let bestScore = -1e9;
     for (const c of candidates) {
       if (!c.syncedLyrics && !c.plainLyrics) continue;
       if (c.instrumental) continue;
-      let score = c.syncedLyrics ? 120 : 15;
-      const ct = String(c.trackName || '').toLowerCase();
-      const ca = String(c.artistName || '').toLowerCase();
-      if (ct === tLow) score += 45;
-      else if (tLow && (ct.includes(tLow) || tLow.includes(ct))) score += 22;
-      if (aLow && (ca.includes(aLow) || aLow.includes(ca))) score += 25;
+      const ct = String(c.trackName || '');
+      const ca = String(c.artistName || '');
+      const tSim = titleSim(tgtTitle, ct);
+      if (tSim < 0.42) continue;
+      const aSim = tgtArtist ? titleSim(tgtArtist, ca) : 0.25;
+      let score = (c.syncedLyrics ? 120 : 15) + tSim * 65 + aSim * 45;
       if (durationSec > 10 && c.duration) {
         const cDur = Number(c.duration);
+        const diff = Math.abs(cDur - durationSec);
         if (tempoKind === 'slowed' || tempoKind === 'spedup') {
           const ratio = durationSec / Math.max(1, cDur);
           if (ratio >= 0.62 && ratio <= 1.48) score += 18;
-          else score -= Math.abs(cDur - durationSec) * 0.6;
+          else score -= Math.min(35, diff * 0.5);
+        } else if (tempoKind === 'live' || tempoKind === 'remix') {
+          score -= Math.min(25, diff * 0.15);
         } else {
-          const diff = Math.abs(cDur - durationSec);
-          score -= diff * 1.4;
+          score -= Math.min(45, diff * 0.8);
         }
       }
       if (score > bestScore) {
@@ -262,39 +437,84 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   };
 
   let picked = null;
-  if (tempoKind !== 'slowed' && tempoKind !== 'spedup') {
+  if (!tempoKind) {
     try {
       const params = new URLSearchParams({ track_name: queryTitle, artist_name: queryArtist || queryTitle });
       if (album) params.set('album_name', album);
       if (durationSec > 10) params.set('duration', String(Math.round(durationSec)));
-      picked = await fetchJson(`https://lrclib.net/api/get?${params.toString()}`, 5500);
-      if (!picked || (!picked.syncedLyrics && !picked.plainLyrics)) picked = null;
+      const exactHit = await fetchJson(`https://lrclib.net/api/get?${params.toString()}`, 5000);
+      if (exactHit && (exactHit.syncedLyrics || exactHit.plainLyrics) && titleSim(queryTitle, exactHit.trackName) >= 0.42) {
+        picked = exactHit;
+      }
     } catch {}
   }
 
   const noDjTitle = queryTitle.replace(/^dj\s+/i, '').trim();
-  const queries = [];
-  if (queryArtist) queries.push(`https://lrclib.net/api/search?q=${encodeURIComponent(`${queryArtist} ${queryTitle}`)}`);
-  queries.push(`https://lrclib.net/api/search?track_name=${encodeURIComponent(noDjTitle || queryTitle)}`);
+  const lrclibQueries = [];
+  if (queryArtist) {
+    lrclibQueries.push({
+      url: `https://lrclib.net/api/search?q=${encodeURIComponent(`${queryArtist} ${queryTitle}`)}`,
+      tgtTitle: queryTitle,
+      tgtArtist: queryArtist
+    });
+  }
+  lrclibQueries.push({
+    url: `https://lrclib.net/api/search?track_name=${encodeURIComponent(noDjTitle || queryTitle)}`,
+    tgtTitle: noDjTitle || queryTitle,
+    tgtArtist: queryArtist
+  });
   if (altSwapped && altSwapped.title) {
     const swTitle = stripRemixNoise(altSwapped.title) || altSwapped.title;
     const swArtist = stripRemixNoise(altSwapped.artist) || altSwapped.artist;
-    if (swTitle && swTitle.toLowerCase() !== queryTitle.toLowerCase()) {
-      queries.push(`https://lrclib.net/api/search?q=${encodeURIComponent(swArtist ? `${swArtist} ${swTitle}` : swTitle)}`);
+    if (swTitle && (swTitle.toLowerCase() !== queryTitle.toLowerCase() || swArtist.toLowerCase() !== queryArtist.toLowerCase())) {
+      lrclibQueries.push({
+        url: `https://lrclib.net/api/search?q=${encodeURIComponent(swArtist ? `${swArtist} ${swTitle}` : swTitle)}`,
+        tgtTitle: swTitle,
+        tgtArtist: swArtist
+      });
     }
   }
 
-  for (const url of queries.slice(0, 3)) {
-    if (picked && picked.syncedLyrics) break;
+  for (const q of lrclibQueries.slice(0, 3)) {
+    if (picked && picked.syncedLyrics && titleSim(q.tgtTitle, picked.trackName) >= 0.72) break;
     try {
-      const list = await fetchJson(url, 6000);
-      const cand = pickBest(list);
+      const list = await fetchJson(q.url, 5500);
+      const cand = pickBest(list, q.tgtTitle, q.tgtArtist);
       if (cand && (!picked || (cand.syncedLyrics && !picked.syncedLyrics))) {
         picked = cand;
       }
     } catch {}
   }
 
+  // Fallback 2: Canonical spelling lookup via iTunes -> LRCLIB
+  if (!picked || !picked.syncedLyrics) {
+    const canon = await resolveCanonicalViaItunes(queryArtist, noDjTitle || queryTitle);
+    if (canon && canon.title) {
+      for (const u of [
+        `https://lrclib.net/api/search?q=${encodeURIComponent(`${canon.artist} ${canon.title}`)}`,
+        `https://lrclib.net/api/search?track_name=${encodeURIComponent(canon.title)}`
+      ]) {
+        if (picked && picked.syncedLyrics) break;
+        try {
+          const list = await fetchJson(u, 5500);
+          const cand = pickBest(list, canon.title, canon.artist);
+          if (cand && (!picked || (cand.syncedLyrics && !picked.syncedLyrics))) {
+            picked = cand;
+          }
+        } catch {}
+      }
+    }
+  }
+
+  // Fallback 3: Similarity-guarded Kugou LRC database
+  if (!picked || !picked.syncedLyrics) {
+    const kugou = await fetchKugouLyrics(queryArtist, noDjTitle || queryTitle, durationSec);
+    if (kugou && kugou.syncedLyrics) {
+      picked = kugou;
+    }
+  }
+
+  // Fallback 4: Plain lyrics from lyrics.ovh
   let plainFallback = [];
   if (!picked && queryArtist && (noDjTitle || queryTitle)) {
     try {
@@ -312,24 +532,32 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   const plain = picked && picked.plainLyrics
     ? picked.plainLyrics.split(/\r?\n/).filter(Boolean)
     : plainFallback;
+  const resolvedTitle = (picked && picked.trackName) || queryTitle;
+  const resolvedArtist = (picked && picked.artistName) || queryArtist;
   const result = {
-    cacheV: 2,
+    cacheV: 3,
     found: lines.length > 0 || plain.length > 0,
     synced: lines.length > 0,
     lines,
     plain,
     sourceDuration: Number((picked && picked.duration) || 0),
     tempoKind: tempoKind || null,
-    trackName: (picked && picked.trackName) || queryTitle,
-    artistName: (picked && picked.artistName) || queryArtist,
-    title: queryTitle,
-    artist: queryArtist
+    isLiveTrack,
+    syncKey,
+    savedSync: getLyricSync(cacheDir, syncKey),
+    trackName: resolvedTitle,
+    artistName: resolvedArtist,
+    title: resolvedTitle,
+    artist: resolvedArtist
   };
 
   if (result.found) {
     try {
+      const toCache = { ...result };
+      delete toCache.savedSync;
+      delete toCache.syncKey;
       fs.mkdirSync(cacheDir, { recursive: true });
-      fs.writeFileSync(cacheFile, JSON.stringify(result));
+      fs.writeFileSync(cacheFile, JSON.stringify(toCache));
       pruneCacheDir(cacheDir, 160);
     } catch {}
   }
@@ -1021,6 +1249,9 @@ module.exports = {
   parseLrc,
   parseIcs,
   fetchLyrics,
+  saveLyricSync,
+  getLyricSync,
+  makeSyncKey,
   fetchAlbumArtHD,
   fetchWeather,
   geocodeCity,

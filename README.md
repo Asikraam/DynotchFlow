@@ -28,7 +28,7 @@
 Most desktop Dynamic Island overlays run heavy background polling scripts or leave jagged translucent DWM titlebars around the pill on Windows 11. **DynotchFlow** combines a streamlined Electron UI with a compiled **64-bit native C# WinRT bridge (`NotchBridge.exe`)** and clean OS window-region clipping:
 
 - **Zero DWM Titlebar Artifacts & Crisp Corners:** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo.
-- **0ms Optimistic Media Control + Zero-RAM DJ / YouTube Lyrics:** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, smart YouTube/DJ title cleaning, automatic **Slowed+Reverb / Sped-Up** linear tempo scaling, and quick `-0.5s / +0.5s` fine calibration.
+- **0ms Optimistic Media Control + Universal Live / DJ / Unofficial Lyrics (`< 50 MB` RAM):** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, universal fuzzy title matching across **LRCLIB**, **iTunes canonical spelling**, **Kugou LRC**, and **`lyrics.ovh`** (official tracks, live concerts, fancams, acoustic covers, and DJ/Slowed+Reverb remixes), plus **1-Tap Instant Sync** (right-click any lyric line), **2-Point Live Band Tempo Auto-Warp**, `-5s / -0.5s / +0.5s / +5s` quick calibration, and per-video saved offsets (`lyrics-sync.json`).
 - **< 50 MB RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and smart idle trimming without slowing expanded animations.
 - **Hybrid Auto-Center + Marquee Pill Lyrics:** Short lines sit sharp and centered inside `30px` / `34px` / `40px` pill heights (with proportional font scaling), smoothly switching to edge-faded marquee scrolling only when a line overflows.
 
@@ -55,8 +55,8 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `5368D3D7F0F0808A35223AFD0B1246E738C12A6560B3766627E393A4FF6C91E9` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `D339795BF87873A2F6883C177E92478A07DDDD0CD28137BEFA49CABC5608C2DE` |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `693D23C4EDBB774AE9F837095C7703A8D4207EF62D5ADB2F40C444B5D0656B13` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `386244BEF5EBCB9DB576F5AE17595A0BDF158A4CB3D485DBBBA9D40DBAC05E17` |
 
 </details>
 
@@ -68,7 +68,7 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Module | Highlights |
 | :--- | :--- |
-| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Features adaptive album-art accent glow, Hybrid Auto-Center + Marquee pill lyrics, smart DJ / remix noise stripping, auto tempo scaling for **Slowed+Reverb / Sped-Up** tracks, and `-0.5s / +0.5s` sync nudges. |
+| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Matches official, live concert, fancam, acoustic cover, and DJ/Slowed+Reverb uploads via LRCLIB, iTunes canonical lookup, and Kugou LRC. Features **Right-Click / 1-Tap `"Pas-in"` snap**, **2-Point Live Tempo Auto-Warp**, `-5s / -0.5s / +0.5s / +5s` nudges, and per-video calibration memory. |
 | **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar secret iCal (`.ics`) links (comma/newline separated) + add quick local agendas (`+ Agenda`). Supports `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown chips, and start alerts. |
 | **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night`), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with H-10m, H-5m & Adzan reminders. |
 | **Notch Shelf & Volume** | Drag-and-drop files, images, or notes into the island and drag files back out natively to Explorer or web apps. Scroll over the collapsed pill volume icon to step Windows Master Volume cleanly in even increments (`±2`). |

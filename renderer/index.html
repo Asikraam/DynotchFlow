@@ -142,15 +142,23 @@
                 <button id="btn-play" class="ctrl-btn primary" title="Play / Pause"><span id="play-ico"></span></button>
                 <button id="btn-next" class="ctrl-btn" title="Berikutnya"><span data-ico="next"></span></button>
               </div>
-              <div id="lyric-sync-row" class="lyric-sync-row hidden" title="Kalibrasi sinkronisasi lirik (untuk lagu DJ / Slowed / YouTube)">
-                <button id="btn-sync-minus" class="sync-nudge-btn" title="Mundurkan lirik 0.5 detik">-0.5s</button>
-                <button id="btn-sync-reset" class="sync-nudge-lbl" title="Klik untuk reset offset sinkronisasi">0.0s</button>
-                <button id="btn-sync-plus" class="sync-nudge-btn" title="Majukan lirik 0.5 detik">+0.5s</button>
+              <div id="lyric-sync-row" class="lyric-sync-row hidden" title="Kalibrasi sinkronisasi lirik (Live / DJ / Slowed / YouTube) — Klik kanan baris lirik untuk langsung pas!">
+                <button id="btn-sync-m5" class="sync-nudge-btn" title="Mundurkan lirik 5 detik">-5s</button>
+                <button id="btn-sync-minus" class="sync-nudge-btn" title="Mundurkan lirik 0.5 detik">-0.5</button>
+                <button id="btn-sync-tap" class="sync-nudge-lbl" title="Mode Pas-in: klik lalu klik baris lirik yg sedang dinyanyikan (Klik kanan tombol ini = Reset)">Pas-in</button>
+                <button id="btn-sync-plus" class="sync-nudge-btn" title="Majukan lirik 0.5 detik">+0.5</button>
+                <button id="btn-sync-p5" class="sync-nudge-btn" title="Majukan lirik 5 detik">+5s</button>
               </div>
             </div>
-            <div class="lyrics-pane" id="lyrics-pane">
-              <div id="lyrics-status" class="lyrics-status">Mencari lirik sinkron...</div>
-              <div id="lyrics-list" class="lyrics-list"></div>
+            <div class="lyrics-col">
+              <div id="lyrics-tap-banner" class="lyrics-tap-banner hidden">
+                <span id="lyrics-tap-msg"></span>
+                <button id="btn-sync-reset" class="sync-reset-mini" title="Reset kalibrasi sinkronisasi">Reset</button>
+              </div>
+              <div class="lyrics-pane" id="lyrics-pane">
+                <div id="lyrics-status" class="lyrics-status">Mencari lirik sinkron...</div>
+                <div id="lyrics-list" class="lyrics-list"></div>
+              </div>
             </div>
           </div>
         </div>
