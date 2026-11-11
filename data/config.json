@@ -1,0 +1,30 @@
+{
+  "pillHeight": 34,
+  "offsetX": 0,
+  "autoHideTopEdge": false,
+  "autoHideFullscreen": true,
+  "expandOnHover": true,
+  "lyricsInCollapsedPill": true,
+  "showWeatherOnIdle": true,
+  "showPrayerCountdown": true,
+  "prayerAdzanAlert": true,
+  "city": "Jakarta",
+  "country": "Indonesia",
+  "weatherLat": -6.2088,
+  "weatherLon": 106.8456,
+  "gcalAccount": "",
+  "icsUrl": "",
+  "localEvents": [],
+  "customFeeds": [
+    {
+      "id": "usd_idr",
+      "label": "Kurs USD/IDR",
+      "url": "https://open.er-api.com/v6/latest/USD",
+      "jsonPath": "rates.IDR",
+      "prefix": "Rp ",
+      "suffix": "",
+      "enabled": false
+    }
+  ],
+  "autostart": false
+}

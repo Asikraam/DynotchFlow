@@ -1,0 +1,92 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate JavaScript syntax
+        shell: pwsh
+        run: |
+          $files = @("main.js", "preload.js", "services.js", "renderer/app.js")
+          foreach ($f in $files) {
+            Write-Host "Checking $f..."
+            node --check $f
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Compile C# WinRT Bridge, Launcher & Setup Stub
+        shell: pwsh
+        run: |
+          $fw = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319"
+          $csc = Join-Path $fw "csc.exe"
+          if (-not (Test-Path $csc)) { throw "csc.exe not found at $csc" }
+
+          $wrt = Get-ChildItem $fw -Recurse -Filter "System.Runtime.WindowsRuntime.dll" -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $wrt) {
+            $refBase = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework"
+            $wrt = Get-ChildItem $refBase -Recurse -Filter "System.Runtime.WindowsRuntime.dll" -ErrorAction SilentlyContinue |
+              Select-Object -Last 1 -ExpandProperty FullName
+          }
+          if (-not $wrt) { throw "System.Runtime.WindowsRuntime.dll not found" }
+
+          $winMdRefs = @()
+          $sysWinMd = "$env:WINDIR\System32\WinMetadata"
+          if ((Test-Path "$sysWinMd\Windows.Media.winmd") -and (Test-Path "$sysWinMd\Windows.Foundation.winmd")) {
+            $winMdRefs = @(
+              "/r:$sysWinMd\Windows.Media.winmd",
+              "/r:$sysWinMd\Windows.Foundation.winmd",
+              "/r:$sysWinMd\Windows.Storage.winmd"
+            )
+          } else {
+            $kits = "${env:ProgramFiles(x86)}\Windows Kits\10\UnionMetadata"
+            $winMd = Get-ChildItem $kits -Recurse -Filter "Windows.winmd" -ErrorAction SilentlyContinue |
+              Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
+            if (-not $winMd) { throw "Windows.winmd not found" }
+            $winMdRefs = @("/r:$winMd")
+          }
+
+          New-Item -ItemType Directory -Force -Path "build" | Out-Null
+
+          & $csc /nologo /optimize+ /target:exe "/out:build\NotchBridge.exe" `
+            "/r:$fw\System.Runtime.dll" `
+            "/r:$fw\System.Threading.Tasks.dll" `
+            "/r:$fw\System.IO.dll" `
+            "/r:$fw\System.Runtime.InteropServices.WindowsRuntime.dll" `
+            "/r:$wrt" `
+            @winMdRefs `
+            "NotchBridge.cs"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & $csc /nologo /optimize+ /target:winexe "/win32icon:NotchFlow.ico" `
+            "/out:build\DynotchFlow_Launcher.exe" "DynotchFlow_Launcher.cs"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & $csc /nologo /optimize+ /target:winexe "/win32icon:NotchFlow.ico" `
+            /r:System.Windows.Forms.dll /r:System.Drawing.dll `
+            /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
+            "/out:build\DynotchFlowV4Setup_Stub.exe" "installer\DynotchFlowV4Setup.cs"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          Get-ChildItem build | Format-Table Name, Length -AutoSize
+
+      - name: Security & Electron dependency dry-run
+        shell: pwsh
+        run: |
+          npm install --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,0 +1,877 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { execFile } = require('child_process');
+
+const BMKG_ADM4_MAP = {
+  bandung: '32.73.07.1003',
+  'kota bandung': '32.73.07.1003',
+  cimahi: '32.77.01.1001',
+  jakarta: '31.71.01.1001',
+  bogor: '32.71.01.1001',
+  depok: '32.76.01.1001',
+  tangerang: '36.71.01.1001',
+  bekasi: '32.75.01.1001',
+  semarang: '33.74.01.1001',
+  yogyakarta: '34.71.01.1001',
+  jogja: '34.71.01.1001',
+  surabaya: '35.78.01.1001',
+  malang: '35.73.01.1001',
+  medan: '12.71.01.1001',
+  makassar: '73.71.01.1001',
+  denpasar: '51.71.01.1001',
+  bali: '51.71.01.1001'
+};
+
+const MYQURAN_CITY_CACHE = {
+  bandung: '1219',
+  'kota bandung': '1219',
+  cimahi: '1221',
+  jakarta: '1301',
+  bogor: '1220',
+  depok: '1225',
+  bekasi: '1221',
+  surabaya: '1638',
+  yogyakarta: '1505',
+  semarang: '1433'
+};
+
+function pruneCacheDir(cacheDir, maxFiles = 160) {
+  try {
+    if (!cacheDir || !fs.existsSync(cacheDir)) return;
+    const entries = fs.readdirSync(cacheDir).map((name) => {
+      const fullPath = path.join(cacheDir, name);
+      try {
+        const st = fs.statSync(fullPath);
+        return st.isFile() ? { fullPath, mtimeMs: st.mtimeMs } : null;
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+    if (entries.length <= maxFiles) return;
+    entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    for (let i = maxFiles; i < entries.length; i++) {
+      try { fs.unlinkSync(entries[i].fullPath); } catch {}
+    }
+  } catch {}
+}
+
+function bmkgDescToIcon(desc) {
+  const s = String(desc || '').toLowerCase();
+  if (s.includes('petir') || s.includes('badai')) return 'storm';
+  if (s.includes('hujan lebat') || s.includes('hujan deras')) return 'rain-heavy';
+  if (s.includes('hujan') || s.includes('gerimis')) return 'rain';
+  if (s.includes('kabut') || s.includes('asap') || s.includes('udara')) return 'fog';
+  if (s.includes('cerah berawan')) return 'sun-cloud';
+  if (s.includes('cerah')) return 'sun';
+  return 'cloud';
+}
+
+const WMO_MAP = {
+  0: ['Cerah', 'sun'],
+  1: ['Umumnya Cerah', 'sun-cloud'],
+  2: ['Berawan Sebagian', 'cloud-sun'],
+  3: ['Mendung', 'cloud'],
+  45: ['Berkabut', 'fog'],
+  48: ['Kabut Tipis', 'fog'],
+  51: ['Gerimis Ringan', 'drizzle'],
+  53: ['Gerimis', 'drizzle'],
+  55: ['Gerimis Lebat', 'drizzle'],
+  61: ['Hujan Ringan', 'rain'],
+  63: ['Hujan Sedang', 'rain'],
+  65: ['Hujan Lebat', 'rain-heavy'],
+  80: ['Hujan Lokal Ringan', 'rain'],
+  81: ['Hujan Lokal', 'rain'],
+  82: ['Hujan Deras', 'rain-heavy'],
+  95: ['Badai Petir', 'storm'],
+  96: ['Badai + Hujan Es', 'storm'],
+  99: ['Badai Petir Kuat', 'storm']
+};
+
+function cleanTrackInfo(rawTitle, rawArtist) {
+  let title = (rawTitle || '').trim();
+  let artist = (rawArtist || '').replace(/\s*-\s*Topic$/i, '').trim();
+
+  const junkRe = /\s*[\(\[]\s*(?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer)|lyrics?|lirik|mv|hd|4k|live(?:\s+at.*)?|remastered.*|feat\..*|ft\..*|prod\..*)\s*[\)\]]/gi;
+  title = title.replace(junkRe, '').replace(/\s*\|\s*.*$/, '').trim();
+
+  // Handle "Artist - Song Title" common on YouTube / YouTube Music
+  const dashIdx = title.indexOf(' - ');
+  if (dashIdx > 0 && dashIdx < title.length - 3) {
+    const left = title.slice(0, dashIdx).trim();
+    const right = title.slice(dashIdx + 3).trim();
+    if (!artist || left.toLowerCase().includes(artist.toLowerCase()) || artist.toLowerCase().includes(left.toLowerCase()) || /youtube|chrome|msedge|brave/i.test(artist)) {
+      artist = left;
+      title = right;
+    } else if (right.length > 1) {
+      artist = left;
+      title = right;
+    }
+  }
+
+  artist = artist.replace(/\s*(?:VEVO|Official|Channel)$/i, '').trim();
+  return { title, artist };
+}
+
+function parseLrc(lrcText) {
+  if (!lrcText || typeof lrcText !== 'string') return [];
+  const lines = [];
+  const rowRe = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+  for (const rawLine of lrcText.split(/\r?\n/)) {
+    const times = [];
+    let match;
+    rowRe.lastIndex = 0;
+    while ((match = rowRe.exec(rawLine)) !== null) {
+      const mins = parseInt(match[1], 10);
+      const secs = parseInt(match[2], 10);
+      const msRaw = match[3] || '0';
+      const ms = msRaw.length === 3 ? parseInt(msRaw, 10) / 1000 : msRaw.length === 2 ? parseInt(msRaw, 10) / 100 : parseInt(msRaw, 10) / 10;
+      times.push(mins * 60 + secs + ms);
+    }
+    if (times.length === 0) continue;
+    const text = rawLine.replace(/\[[^\]]+\]/g, '').trim();
+    if (!text) continue;
+    for (const t of times) {
+      lines.push({ time: Number(t.toFixed(3)), text });
+    }
+  }
+  lines.sort((a, b) => a.time - b.time);
+  return lines;
+}
+
+async function fetchJson(url, timeoutMs = 8000, headers = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'DynotchFlow/4.0 (Windows 11 Custom Dynamic Island)',
+        ...headers
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchText(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'DynotchFlow/4.0 (Windows 11)' }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
+  const { title, artist } = cleanTrackInfo(rawTitle, rawArtist);
+  if (!title) return { found: false, lines: [], plain: [], title, artist };
+
+  const cacheKey = crypto.createHash('sha1').update(`${title.toLowerCase()}|${artist.toLowerCase()}`).digest('hex');
+  const cacheFile = path.join(cacheDir, `${cacheKey}.json`);
+  try {
+    if (fs.existsSync(cacheFile)) {
+      const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      if (cached && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
+        return { ...cached, title, artist, fromCache: true };
+      }
+    }
+  } catch {}
+
+  const pickBest = (candidates) => {
+    if (!Array.isArray(candidates) || candidates.length === 0) return null;
+    let best = null;
+    let bestScore = -1e9;
+    for (const c of candidates) {
+      if (!c.syncedLyrics && !c.plainLyrics) continue;
+      let score = c.syncedLyrics ? 100 : 10;
+      if (c.trackName && c.trackName.toLowerCase().includes(title.toLowerCase())) score += 20;
+      if (artist && c.artistName && c.artistName.toLowerCase().includes(artist.toLowerCase())) score += 20;
+      if (durationSec > 10 && c.duration) {
+        const diff = Math.abs(Number(c.duration) - durationSec);
+        score -= diff * 1.5;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    }
+    return best;
+  };
+
+  let picked = null;
+  try {
+    const params = new URLSearchParams({ track_name: title, artist_name: artist || title });
+    if (album) params.set('album_name', album);
+    if (durationSec > 10) params.set('duration', String(Math.round(durationSec)));
+    picked = await fetchJson(`https://lrclib.net/api/get?${params.toString()}`, 6500);
+    if (!picked || (!picked.syncedLyrics && !picked.plainLyrics)) picked = null;
+  } catch {}
+
+  if (!picked) {
+    try {
+      const q = artist ? `${artist} ${title}` : title;
+      const list = await fetchJson(`https://lrclib.net/api/search?q=${encodeURIComponent(q)}`, 6500);
+      picked = pickBest(list);
+    } catch {}
+  }
+
+  if (!picked && artist) {
+    try {
+      const list = await fetchJson(`https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}`, 6500);
+      picked = pickBest(list);
+    } catch {}
+  }
+
+  const lines = picked && picked.syncedLyrics ? parseLrc(picked.syncedLyrics) : [];
+  const plain = picked && picked.plainLyrics ? picked.plainLyrics.split(/\r?\n/).filter(Boolean) : [];
+  const result = {
+    found: lines.length > 0 || plain.length > 0,
+    synced: lines.length > 0,
+    lines,
+    plain,
+    trackName: (picked && picked.trackName) || title,
+    artistName: (picked && picked.artistName) || artist,
+    title,
+    artist
+  };
+
+  if (result.found) {
+    try {
+      fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(cacheFile, JSON.stringify(result));
+      pruneCacheDir(cacheDir, 160);
+    } catch {}
+  }
+  return result;
+}
+
+function parseBmkgTimeMs(s) {
+  if (s.utc_datetime) {
+    const t = new Date(String(s.utc_datetime).replace(' ', 'T') + 'Z').getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  return new Date(String(s.local_datetime || '').replace(' ', 'T')).getTime();
+}
+
+async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta') {
+  const key = String(cityName || 'Jakarta').trim().toLowerCase();
+  const adm4 = BMKG_ADM4_MAP[key] || (key.includes('jakarta') ? '31.71.01.1001' : (key.includes('bandung') ? '32.73.07.1003' : null));
+
+  if (adm4) {
+    try {
+      const bmkgUrl = `https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${adm4}`;
+      const b = await fetchJson(bmkgUrl, 7500);
+      const groups = (b && b.data && b.data[0] && b.data[0].cuaca) || [];
+      const flat = [];
+      for (const grp of groups) {
+        if (Array.isArray(grp)) {
+          for (const item of grp) flat.push(item);
+        }
+      }
+
+      if (flat.length > 0) {
+        const nowMs = Date.now();
+        let curSlot = flat[0];
+        let minDiff = Infinity;
+        for (const s of flat) {
+          const tMs = parseBmkgTimeMs(s);
+          const diff = Math.abs(tMs - nowMs);
+          if (diff < minDiff) {
+            minDiff = diff;
+            curSlot = s;
+          }
+        }
+
+        // Next 24h slots for daily min/max & weather state changes
+        const windowSlots = flat.filter(s => {
+          const tMs = parseBmkgTimeMs(s);
+          return tMs >= nowMs - 2 * 3600 * 1000 && tMs <= nowMs + 26 * 3600 * 1000;
+        });
+        const sampleSlots = windowSlots.length > 0 ? windowSlots : flat.slice(0, 8);
+        const tempsAll = sampleSlots.map(s => Number(s.t ?? 24));
+        const minTemp = Math.round(Math.min(...tempsAll));
+        const maxTemp = Math.round(Math.max(...tempsAll));
+
+        const transitions = [];
+        let prevDesc = '';
+        let rainAlert = null;
+        for (const s of sampleSlots) {
+          const hhmm = String(s.local_datetime || '').slice(11, 16);
+          const desc = String(s.weather_desc || 'Berawan').trim();
+          const temp = Math.round(Number(s.t ?? 24));
+          const icon = bmkgDescToIcon(desc);
+          if (desc.toLowerCase() !== prevDesc.toLowerCase()) {
+            transitions.push({ time: hhmm, label: desc, temp, icon });
+            prevDesc = desc;
+          }
+          if (!rainAlert && /hujan|petir|badai/i.test(desc)) {
+            rainAlert = { time: hhmm, desc };
+          }
+        }
+
+        const transitionSummary = transitions.length > 1
+          ? transitions.slice(0, 4).map(t => `${t.time} ${t.label}`).join(' → ')
+          : `Stabil ${curSlot.weather_desc || 'Berawan'} sepanjang hari`;
+
+        return {
+          source: 'BMKG',
+          city: (b?.lokasi?.kotkab || cityName).replace(/^Kota\s+/i, ''),
+          subdistrict: b?.lokasi?.kecamatan || '',
+          temp: Math.round(Number(curSlot.t ?? 24)),
+          feelsLike: Math.round(Number(curSlot.t ?? 24)),
+          humidity: Number(curSlot.hu ?? 75),
+          wind: Math.round(Number(curSlot.ws ?? 0)),
+          label: String(curSlot.weather_desc || 'Berawan'),
+          icon: bmkgDescToIcon(curSlot.weather_desc),
+          min: minTemp,
+          max: maxTemp,
+          rainAlert,
+          transitions: transitions.slice(0, 5),
+          transitionSummary,
+          updatedAt: Date.now()
+        };
+      }
+    } catch {}
+  }
+
+  // Fallback: Open-Meteo with Daily Weather Change Transitions
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=precipitation_probability,weather_code,temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=2`;
+  const d = await fetchJson(url, 8000);
+  const cur = d.current || {};
+  const code = cur.weather_code ?? 0;
+  const [label, icon] = WMO_MAP[code] || ['Berawan', 'cloud'];
+
+  const nowMs = Date.now();
+  const times = (d.hourly && d.hourly.time) || [];
+  const probs = (d.hourly && d.hourly.precipitation_probability) || [];
+  const codes = (d.hourly && d.hourly.weather_code) || [];
+  const temps = (d.hourly && d.hourly.temperature_2m) || [];
+  let rainAlert = null;
+  const transitions = [];
+  let prevLbl = '';
+
+  for (let i = 0; i < times.length; i++) {
+    const tMs = new Date(times[i]).getTime();
+    if (tMs >= nowMs - 1800000 && tMs <= nowMs + 24 * 3600000) {
+      const hhmm = times[i].slice(11, 16);
+      const prob = probs[i] ?? 0;
+      const [hLabel, hIcon] = WMO_MAP[codes[i] ?? 0] || ['Berawan', 'cloud'];
+      if (hLabel !== prevLbl) {
+        transitions.push({ time: hhmm, label: hLabel, temp: Math.round(temps[i] ?? cur.temperature_2m ?? 0), icon: hIcon });
+        prevLbl = hLabel;
+      }
+      if (!rainAlert && (prob >= 50 || /hujan|badai/i.test(hLabel))) {
+        rainAlert = { time: hhmm, prob, desc: hLabel };
+      }
+    }
+  }
+
+  return {
+    source: 'Open-Meteo',
+    city: cityName,
+    temp: Math.round(cur.temperature_2m ?? 0),
+    feelsLike: Math.round(cur.apparent_temperature ?? cur.temperature_2m ?? 0),
+    humidity: cur.relative_humidity_2m ?? 0,
+    wind: Math.round(cur.wind_speed_10m ?? 0),
+    label,
+    icon,
+    min: Math.round((d.daily && d.daily.temperature_2m_min && d.daily.temperature_2m_min[0]) ?? 0),
+    max: Math.round((d.daily && d.daily.temperature_2m_max && d.daily.temperature_2m_max[0]) ?? 0),
+    rainAlert,
+    transitions: transitions.slice(0, 5),
+    transitionSummary: transitions.length > 1
+      ? transitions.slice(0, 4).map(t => `${t.time} ${t.label}`).join(' → ')
+      : `Stabil ${label} hari ini`,
+    updatedAt: Date.now()
+  };
+}
+
+async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia') {
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm   = String(now.getMonth() + 1).padStart(2, '0');
+  const dd   = String(now.getDate()).padStart(2, '0');
+  const dateKey = `${yyyy}-${mm}-${dd}`;
+  const cleanCity = String(city || 'Jakarta').trim().toLowerCase();
+
+  // Primary: Official Kemenag RI via MyQuran v2 API
+  try {
+    let cityId = MYQURAN_CITY_CACHE[cleanCity] || (cleanCity.includes('jakarta') ? '1301' : (cleanCity.includes('bandung') ? '1219' : null));
+    if (!cityId) {
+      const searchRes = await fetchJson(`https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(cleanCity)}`, 5500);
+      if (searchRes && searchRes.status && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
+        const kotaMatch = searchRes.data.find(x => /^KOTA\s+/i.test(x.lokasi)) || searchRes.data[0];
+        cityId = kotaMatch.id;
+        MYQURAN_CITY_CACHE[cleanCity] = cityId;
+      }
+    }
+    if (cityId) {
+      const kRes = await fetchJson(`https://api.myquran.com/v2/sholat/jadwal/${cityId}/${yyyy}/${mm}/${dd}`, 6500);
+      const j = kRes && kRes.status && kRes.data && kRes.data.jadwal ? kRes.data.jadwal : null;
+      if (j && j.subuh && j.dzuhur) {
+        return {
+          source: 'Kemenag RI',
+          city: (kRes.data.lokasi || city).replace(/^KOTA\s+/i, 'Kota ').replace(/^KAB\.\s+/i, 'Kab. '),
+          dateKey,
+          tanggal: j.tanggal || `${dd}/${mm}/${yyyy}`,
+          imsak: j.imsak || '',
+          terbit: j.terbit || '',
+          timings: [
+            { key: 'Subuh', time: j.subuh },
+            { key: 'Dzuhur', time: j.dzuhur },
+            { key: 'Ashar', time: j.ashar },
+            { key: 'Maghrib', time: j.maghrib },
+            { key: 'Isya', time: j.isya }
+          ],
+          updatedAt: Date.now()
+        };
+      }
+    }
+  } catch {}
+
+  // Fallback: Aladhan Method 20 (Kemenag RI)
+  const url = `https://api.aladhan.com/v1/timingsByCity/${dd}-${mm}-${yyyy}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=20`;
+  const res = await fetchJson(url, 8000);
+  const t = res && res.data && res.data.timings ? res.data.timings : {};
+  const clean = (s) => (s || '').replace(/\s*\(.*\)/, '').trim();
+  const list = [
+    { key: 'Subuh', time: clean(t.Fajr) },
+    { key: 'Dzuhur', time: clean(t.Dhuhr) },
+    { key: 'Ashar', time: clean(t.Asr) },
+    { key: 'Maghrib', time: clean(t.Maghrib) },
+    { key: 'Isya', time: clean(t.Isha) }
+  ].filter(x => /^\d{2}:\d{2}$/.test(x.time));
+
+  return {
+    source: 'Kemenag RI',
+    city,
+    dateKey,
+    tanggal: `${dd}/${mm}/${yyyy}`,
+    hijri: res?.data?.date?.hijri ? `${res.data.date.hijri.day} ${res.data.date.hijri.month?.en || ''} ${res.data.date.hijri.year}` : '',
+    timings: list,
+    updatedAt: Date.now()
+  };
+}
+
+function parseIcsDate(val) {
+  if (!val) return null;
+  const clean = val.trim();
+  const m = clean.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
+  if (!m) return null;
+  const [, y, mo, d, hh, mm, ss, isUtc] = m;
+  if (!hh) {
+    return { date: new Date(Number(y), Number(mo) - 1, Number(d), 0, 0, 0), allDay: true };
+  }
+  if (isUtc) {
+    return { date: new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm), Number(ss))), allDay: false };
+  }
+  return { date: new Date(Number(y), Number(mo) - 1, Number(d), Number(hh), Number(mm), Number(ss)), allDay: false };
+}
+
+const ICS_DAY_MAP = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+
+function expandRruleInstances(startDate, durationMs, rruleStr, exdatesSet, windowStart, windowEnd) {
+  const parts = {};
+  for (const kv of String(rruleStr || '').split(';')) {
+    const [k, v] = kv.split('=');
+    if (k && v) parts[k.toUpperCase().trim()] = v.trim();
+  }
+  const freq = (parts.FREQ || '').toUpperCase();
+  if (freq !== 'WEEKLY' && freq !== 'DAILY') return [];
+
+  const interval = Math.max(1, parseInt(parts.INTERVAL || '1', 10) || 1);
+  const untilParsed = parts.UNTIL ? parseIcsDate(parts.UNTIL) : null;
+  const untilMs = untilParsed ? untilParsed.date.getTime() + 86400000 : Infinity;
+  if (untilMs < windowStart) return [];
+
+  const byDays = parts.BYDAY
+    ? parts.BYDAY.split(',').map(d => ICS_DAY_MAP[d.slice(-2).toUpperCase()]).filter(d => d !== undefined)
+    : [startDate.getDay()];
+
+  const results = [];
+  const startH = startDate.getHours();
+  const startM = startDate.getMinutes();
+  const startS = startDate.getSeconds();
+  const baseDayStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+
+  const scanStart = new Date(windowStart);
+  scanStart.setHours(0, 0, 0, 0);
+
+  for (let dayMs = scanStart.getTime(); dayMs <= windowEnd; dayMs += 86400000) {
+    if (dayMs < baseDayStart) continue;
+    const cand = new Date(dayMs);
+    cand.setHours(startH, startM, startS, 0);
+    const candMs = cand.getTime();
+    if (candMs > untilMs || candMs > windowEnd) continue;
+    if (candMs + durationMs < windowStart) continue;
+
+    const dayDiff = Math.round((dayMs - baseDayStart) / 86400000);
+    if (freq === 'DAILY') {
+      if (dayDiff % interval !== 0) continue;
+    } else if (freq === 'WEEKLY') {
+      const weekDiff = Math.floor(dayDiff / 7);
+      if (weekDiff % interval !== 0) continue;
+      if (!byDays.includes(cand.getDay())) continue;
+    }
+
+    const dateKey = `${cand.getFullYear()}${String(cand.getMonth() + 1).padStart(2, '0')}${String(cand.getDate()).padStart(2, '0')}`;
+    if (exdatesSet && exdatesSet.has(dateKey)) continue;
+    results.push({ startMs: candMs, endMs: candMs + durationMs });
+  }
+  return results;
+}
+
+function inferTagAndColor(title) {
+  const s = String(title || '').toLowerCase();
+  if (/^\[kuliah\]|kuliah|ta\b|skripsi|kampus|ujian|seminar/i.test(s)) return { tag: 'Kuliah', color: '#4986e7' };
+  if (/^\[pro|proyek|project|kantor|meeting|rapat|kerja|client|deadline/i.test(s)) return { tag: 'Profesional', color: '#16a765' };
+  if (/^\[sosial\]|nongkrong|bukber|reuni|komunitas/i.test(s)) return { tag: 'Sosial', color: '#fa573c' };
+  if (/^\[personal\]|gym|olahraga|dokter|pribadi/i.test(s)) return { tag: 'Personal', color: '#cd74e6' };
+  return { tag: 'Kalender', color: '#38bdf8' };
+}
+
+function parseIcs(icsText) {
+  const unfolded = icsText.replace(/\r?\n[ \t]/g, '');
+  const events = [];
+  const blocks = unfolded.split(/BEGIN:VEVENT/i).slice(1);
+  const now = Date.now();
+  const windowStart = now - 3600 * 1000;
+  const windowEnd = now + 7 * 24 * 3600 * 1000;
+
+  for (const blk of blocks) {
+    const body = blk.split(/END:VEVENT/i)[0] || '';
+    const getProp = (name) => {
+      const re = new RegExp(`^${name}(?:;[^:]*)?:(.*)$`, 'im');
+      const m = body.match(re);
+      return m ? m[1].trim().replace(/\\n/g, ' ').replace(/\\,/g, ',') : '';
+    };
+    const summary = getProp('SUMMARY');
+    const startRaw = getProp('DTSTART');
+    const endRaw = getProp('DTEND');
+    const rruleRaw = getProp('RRULE');
+    const location = getProp('LOCATION');
+    const parsed = parseIcsDate(startRaw);
+    if (!summary || !parsed) continue;
+    const endParsed = parseIcsDate(endRaw);
+    const startMs = parsed.date.getTime();
+    const endMs = endParsed ? endParsed.date.getTime() : startMs + 3600000;
+    const durationMs = Math.max(900000, endMs - startMs);
+    const { tag, color } = inferTagAndColor(summary);
+
+    if (rruleRaw && !parsed.allDay) {
+      const exdatesSet = new Set();
+      const exRe = /^EXDATE(?:;[^:]*)?:(.*)$/gim;
+      let exMatch;
+      while ((exMatch = exRe.exec(body)) !== null) {
+        for (const token of exMatch[1].split(',')) {
+          const cleanTok = token.trim().slice(0, 8);
+          if (/^\d{8}$/.test(cleanTok)) exdatesSet.add(cleanTok);
+        }
+      }
+      const expanded = expandRruleInstances(parsed.date, durationMs, rruleRaw, exdatesSet, windowStart, windowEnd);
+      for (const inst of expanded) {
+        events.push({
+          id: `ics_${inst.startMs}_${summary.slice(0, 16)}`,
+          title: summary,
+          tag,
+          color,
+          location,
+          startMs: inst.startMs,
+          endMs: inst.endMs,
+          allDay: false,
+          source: 'gcal'
+        });
+      }
+    } else if (endMs >= windowStart && startMs <= windowEnd) {
+      events.push({
+        id: `ics_${startMs}_${summary.slice(0, 16)}`,
+        title: summary,
+        tag,
+        color,
+        location,
+        startMs,
+        endMs,
+        allDay: parsed.allDay,
+        source: 'gcal'
+      });
+    }
+  }
+  events.sort((a, b) => a.startMs - b.startMs);
+  return events.slice(0, 24);
+}
+
+const DEFAULT_CALENDARS = [];
+
+function parseGcalItems(items, calMeta = {}) {
+  const mapped = [];
+  for (const it of (items || [])) {
+    const rawTitle = (it.summary || it.title || '').trim();
+    const startStr = it.start?.dateTime || it.start?.date || it.startTime || it.start;
+    const endStr   = it.end?.dateTime || it.end?.date || it.endTime || it.end;
+    if (!rawTitle || !startStr) continue;
+    const startMs = new Date(startStr).getTime();
+    const endMs   = endStr ? new Date(endStr).getTime() : startMs + 3600000;
+    if (Number.isNaN(startMs)) continue;
+    mapped.push({
+      id: `gcli_${it.id || startMs}`,
+      title: rawTitle,
+      tag: it.tag || calMeta.tag || 'Kalender',
+      color: it.color || calMeta.color || '#38bdf8',
+      location: it.location || '',
+      htmlLink: it.htmlLink || '',
+      startMs,
+      endMs,
+      allDay: typeof startStr === 'string' && startStr.length <= 10,
+      source: 'gcal'
+    });
+  }
+  return mapped;
+}
+
+function fetchSingleCalCli(exePath, prefixArgs, calMeta, customEnv) {
+  return new Promise((resolve) => {
+    execFile(exePath, [...prefixArgs, 'readonly', 'events', '--cal', calMeta.id, '--max', '20', '--json'], {
+      timeout: 6500,
+      windowsHide: true,
+      env: customEnv || process.env
+    }, (err, stdout) => {
+      if (err || !stdout) {
+        resolve(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout);
+        const items = Array.isArray(parsed) ? parsed : (parsed.items || parsed.events || []);
+        resolve(parseGcalItems(items, calMeta));
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+async function fetchGcalendarCliEvents(calendarList = DEFAULT_CALENDARS, forceRefresh = false) {
+  const calsToQuery = Array.isArray(calendarList) && calendarList.length > 0 ? calendarList : DEFAULT_CALENDARS;
+  if (calsToQuery.length === 0) return { ok: false, events: [] };
+
+  const userProfile = process.env.USERPROFILE || require('os').homedir();
+  const appDataDir = path.join(process.env.APPDATA || path.join(userProfile, 'AppData', 'Roaming'), 'NotchFlow');
+  const gcalCachePath = path.join(appDataDir, 'gcal-cache.json');
+  const gcalEnvPath = path.join(appDataDir, 'gcal-env.json');
+
+  // Fast-path: use recent cache (< 5 min old) during background polls to avoid spawning CLI processes
+  if (!forceRefresh) {
+    try {
+      if (fs.existsSync(gcalCachePath)) {
+        const cached = JSON.parse(fs.readFileSync(gcalCachePath, 'utf8'));
+        if (cached && Array.isArray(cached.events) && (Date.now() - Number(cached.updatedAt || 0) < 5 * 60 * 1000)) {
+          const now = Date.now();
+          const upcoming = cached.events.filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
+          if (upcoming.length > 0) {
+            return { ok: true, events: upcoming, fromCache: true };
+          }
+        }
+      }
+    } catch {}
+  }
+
+  let cliEnv = { ...process.env };
+  try {
+    if (fs.existsSync(gcalEnvPath)) {
+      const savedEnv = JSON.parse(fs.readFileSync(gcalEnvPath, 'utf8'));
+      cliEnv = { ...cliEnv, ...savedEnv };
+    }
+  } catch {}
+
+  const bundledExe = path.join(__dirname, 'bin', 'gcalendar.exe');
+  const candidates = [];
+  if (fs.existsSync(bundledExe)) candidates.push({ exe: bundledExe, args: [] });
+
+  for (const cand of candidates) {
+    const results = await Promise.all(calsToQuery.map(c => fetchSingleCalCli(cand.exe, cand.args, c, cliEnv)));
+    const validLists = results.filter(Array.isArray);
+    if (validLists.length > 0) {
+      const merged = validLists.flat();
+      try {
+        fs.mkdirSync(appDataDir, { recursive: true });
+        fs.writeFileSync(gcalCachePath, JSON.stringify({ updatedAt: Date.now(), events: merged }, null, 2), 'utf8');
+      } catch {}
+      return { ok: true, events: merged };
+    }
+  }
+
+  try {
+    if (fs.existsSync(gcalCachePath)) {
+      const cached = JSON.parse(fs.readFileSync(gcalCachePath, 'utf8'));
+      if (cached && Array.isArray(cached.events)) {
+        const now = Date.now();
+        const upcoming = cached.events.filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
+        return { ok: true, events: upcoming, fromCache: true };
+      }
+    }
+  } catch {}
+
+  return { ok: false, events: [] };
+}
+
+function deduplicateEvents(events) {
+  const seen = new Set();
+  const out = [];
+  for (const ev of events) {
+    const normTitle = String(ev.title || '').trim().toLowerCase();
+    const minuteBucket = Math.round((ev.startMs || 0) / 60000);
+    const key = `${normTitle}|${minuteBucket}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(ev);
+  }
+  return out;
+}
+
+async function fetchCalendarEvents(icsUrl, localEvents = [], gcalAccount = '', calendarList = DEFAULT_CALENDARS, forceRefresh = false) {
+  let remote = [];
+  let error = null;
+  let gcalConnected = false;
+
+  // 1. Optional Google Calendar CLI if user configured calendars explicitly
+  const cliRes = await fetchGcalendarCliEvents(calendarList, forceRefresh);
+  if (cliRes.ok) {
+    gcalConnected = true;
+    remote.push(...cliRes.events);
+  }
+
+  // 2. Private/Public iCal (.ics) URLs (supports single or multiple URLs separated by comma/newline)
+  const urls = String(icsUrl || '').split(/[\s,;]+/).map(u => u.trim()).filter(u => /^https?:\/\//i.test(u));
+  if (urls.length > 0) {
+    const icsResults = await Promise.allSettled(urls.map(u => fetchText(u, 9000)));
+    for (const r of icsResults) {
+      if (r.status === 'fulfilled' && r.value) {
+        remote.push(...parseIcs(r.value));
+        gcalConnected = true;
+      } else if (r.status === 'rejected' && !error) {
+        error = r.reason?.message || 'Gagal memuat iCal';
+      }
+    }
+  }
+
+  const now = Date.now();
+  const upcomingLocal = (localEvents || []).filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
+  const combined = deduplicateEvents([...remote, ...upcomingLocal]).sort((a, b) => a.startMs - b.startMs);
+  return {
+    events: combined.slice(0, 36),
+    remoteCount: remote.length,
+    gcalConnected,
+    account: gcalAccount || '',
+    error,
+    updatedAt: Date.now()
+  };
+}
+
+function resolveJsonPath(obj, dotPath) {
+  if (!dotPath) return obj;
+  let cur = obj;
+  for (const part of dotPath.split('.').filter(Boolean)) {
+    if (cur == null) return undefined;
+    cur = cur[part];
+  }
+  return cur;
+}
+
+async function fetchCustomFeed(feed) {
+  if (!feed || !feed.enabled || !feed.url) return null;
+  try {
+    const json = await fetchJson(feed.url.trim(), 7000);
+    const val = resolveJsonPath(json, feed.jsonPath || '');
+    const formatted = typeof val === 'number'
+      ? (Number.isInteger(val) ? val.toLocaleString('id-ID') : val.toLocaleString('id-ID', { maximumFractionDigits: 2 }))
+      : String(val ?? '—');
+    return {
+      id: feed.id,
+      label: feed.label || 'Custom Data',
+      prefix: feed.prefix || '',
+      suffix: feed.suffix || '',
+      value: formatted,
+      ok: true,
+      updatedAt: Date.now()
+    };
+  } catch (e) {
+    return {
+      id: feed.id,
+      label: feed.label || 'Custom Data',
+      prefix: '',
+      suffix: '',
+      value: 'Err',
+      error: e.message,
+      ok: false,
+      updatedAt: Date.now()
+    };
+  }
+}
+
+async function fetchAlbumArtHD(rawTitle, rawArtist, cacheDir) {
+  const { title, artist } = cleanTrackInfo(rawTitle, rawArtist);
+  if (!title) return '';
+  const cacheKey = 'art_' + crypto.createHash('sha1').update(`${title.toLowerCase()}|${artist.toLowerCase()}`).digest('hex');
+  const cacheFile = path.join(cacheDir, `${cacheKey}.txt`);
+  try {
+    if (fs.existsSync(cacheFile)) {
+      return fs.readFileSync(cacheFile, 'utf8');
+    }
+  } catch {}
+
+  try {
+    const q = artist ? `${artist} ${title}` : title;
+    const data = await fetchJson(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=3`, 6000);
+    const item = data && Array.isArray(data.results) && data.results[0];
+    if (!item || !item.artworkUrl100) return '';
+    const hdUrl = item.artworkUrl100.replace('100x100bb', '600x600bb');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6500);
+    try {
+      const imgRes = await fetch(hdUrl, { signal: controller.signal });
+      if (!imgRes.ok) return '';
+      const arrBuf = await imgRes.arrayBuffer();
+      const b64 = `data:image/jpeg;base64,${Buffer.from(arrBuf).toString('base64')}`;
+      fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(cacheFile, b64, 'utf8');
+      pruneCacheDir(cacheDir, 160);
+      return b64;
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return '';
+  }
+}
+
+async function geocodeCity(cityName) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=id&format=json`;
+  const res = await fetchJson(url, 6000);
+  const first = res && res.results && res.results[0];
+  if (!first) return null;
+  return { name: first.name || cityName, lat: first.latitude, lon: first.longitude };
+}
+
+module.exports = {
+  DEFAULT_CALENDARS,
+  cleanTrackInfo,
+  parseLrc,
+  parseIcs,
+  fetchLyrics,
+  fetchAlbumArtHD,
+  fetchWeather,
+  geocodeCity,
+  fetchPrayerTimes,
+  fetchCalendarEvents,
+  fetchCustomFeed
+};
