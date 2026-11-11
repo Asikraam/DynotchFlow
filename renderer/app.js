@@ -52,6 +52,7 @@ let hoverEnterTimer = null;
 let hoverLeaveTimer = null;
 let activeLyricIdx = -1;
 let lastPillText = '';
+let lyricOffsetSec = 0;
 
 const DEFAULT_VINYL_ART = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
@@ -367,7 +368,7 @@ function syncWindowShape() {
     }
     return;
   }
-  const rad = isExpanded ? 24 : (isSchedAlertActive ? 20 : 17);
+  const rad = isExpanded ? 24 : (isSchedAlertActive ? 20 : Math.round((Number(config.pillHeight) || 34) / 2));
   const key = `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.bottom)},${rad}`;
   if (key !== lastShapeKey) {
     lastShapeKey = key;
@@ -377,7 +378,7 @@ function syncWindowShape() {
       width: r.width,
       height: Math.max(0, r.bottom),
       radius: rad,
-      wing: 10
+      wing: 12
     });
   }
 }
@@ -429,7 +430,11 @@ function syncNotchClass() {
     targetState = hasAlert ? 'state-idle-event' : 'state-idle';
   }
 
-  const sig = `${targetState}|${hideFs}|${hideTop}|${config.pillHeight || 34}`;
+  const pillH = Number(config.pillHeight || 34);
+  if (shell.dataset.size !== String(pillH)) {
+    shell.dataset.size = String(pillH);
+  }
+  const sig = `${targetState}|${hideFs}|${hideTop}|${pillH}`;
   if (sig !== prevStateSignature) {
     prevStateSignature = sig;
     shell.classList.remove('state-idle', 'state-idle-event', 'state-media', 'state-hud', 'state-sched-alert', 'state-expanded');
@@ -721,15 +726,24 @@ function setPillLyricText(text) {
   if (text === lastPillText) return;
   lastPillText = text;
   const el = document.getElementById('pill-lyric-track');
+  if (!el) return;
+  const wrap = el.parentElement;
   el.classList.remove('marquee');
+  if (wrap) wrap.classList.remove('is-overflow');
+
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
   el.textContent = text;
+
   requestAnimationFrame(() => {
-    const parentW = el.parentElement ? el.parentElement.clientWidth : 0;
+    const usableW = Math.max(20, (wrap ? wrap.clientWidth : 0) - 12);
     const textW = el.scrollWidth;
-    if (textW > parentW + 8 && parentW > 20) {
-      const shift = -(textW - parentW + 18);
+    if (textW > usableW - 2) {
+      const shift = -(textW - usableW + 22);
       el.style.setProperty('--marquee-shift', `${shift}px`);
-      el.style.setProperty('--marquee-dur', `${Math.max(5, Math.min(12, textW / 38))}s`);
+      el.style.setProperty('--marquee-dur', `${Math.max(4.5, Math.min(11, textW / 40))}s`);
+      if (wrap) wrap.classList.add('is-overflow');
       el.classList.add('marquee');
     }
   });
@@ -790,6 +804,44 @@ function currentPlaybackPos() {
   return Math.max(0, p);
 }
 
+function getLyricTempoScale(durSec) {
+  const srcDur = Number(lyricsState.sourceDuration || 0);
+  const kind = lyricsState.tempoKind;
+  if (!kind || srcDur <= 20 || durSec <= 20) return 1.0;
+  const ratio = srcDur / durSec;
+  if (kind === 'slowed' && ratio >= 0.62 && ratio <= 0.97) return ratio;
+  if (kind === 'spedup' && ratio >= 1.03 && ratio <= 1.48) return ratio;
+  return 1.0;
+}
+
+function updateLyricSyncLabel() {
+  const row = document.getElementById('lyric-sync-row');
+  const lbl = document.getElementById('btn-sync-reset');
+  if (!row || !lbl) return;
+  const hasSynced = Boolean(lyricsState.found && lyricsState.lines && lyricsState.lines.length > 0);
+  row.classList.toggle('hidden', !hasSynced);
+  if (!hasSynced) return;
+  const scale = getLyricTempoScale(Math.max(0, mediaState.duration || 0));
+  const offTxt = `${lyricOffsetSec >= 0 ? '+' : ''}${lyricOffsetSec.toFixed(1)}s`;
+  lbl.textContent = scale !== 1.0 ? `${scale.toFixed(2)}x · ${offTxt}` : (lyricOffsetSec === 0 ? 'Sync 0.0s' : `Sync ${offTxt}`);
+}
+
+document.getElementById('btn-sync-minus')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lyricOffsetSec = Math.max(-30, Math.round((lyricOffsetSec - 0.5) * 10) / 10);
+  updateLyricSyncLabel();
+});
+document.getElementById('btn-sync-plus')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lyricOffsetSec = Math.min(30, Math.round((lyricOffsetSec + 0.5) * 10) / 10);
+  updateLyricSyncLabel();
+});
+document.getElementById('btn-sync-reset')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lyricOffsetSec = 0;
+  updateLyricSyncLabel();
+});
+
 // 120ms lyric & timeline interpolation ticker (throttled idle clock & zero ReferenceError)
 let clockSubTick = 0;
 let lastRenderedPosSec = -1;
@@ -803,6 +855,8 @@ setInterval(() => {
 
   const pos = currentPlaybackPos();
   const dur = Math.max(0, mediaState.duration || 0);
+  const tempoScale = getLyricTempoScale(dur);
+  const syncPos = Math.max(0, pos * tempoScale + lyricOffsetSec);
   if (!isSeeking && isExpanded) {
     timeCurEl.textContent = fmtSec(pos);
     timeTotEl.textContent = isHoveringScrubber
@@ -814,7 +868,7 @@ setInterval(() => {
   const lines = lyricsState.lines || [];
   let idx = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (pos + 0.35 >= lines[i].time) idx = i;
+    if (syncPos + 0.35 >= lines[i].time) idx = i;
     else break;
   }
 
@@ -834,7 +888,7 @@ setInterval(() => {
     const endT = (lines[idx + 1] && lines[idx + 1].time > startT)
       ? Math.min(lines[idx + 1].time, startT + 7.5)
       : startT + 4.0;
-    const pct = Math.max(0, Math.min(100, ((pos + 0.35 - startT) / Math.max(0.4, endT - startT)) * 100));
+    const pct = Math.max(0, Math.min(100, ((syncPos + 0.35 - startT) / Math.max(0.4, endT - startT)) * 100));
     cachedLyricNodes[idx].style.setProperty('--karaoke-pct', `${pct.toFixed(1)}%`);
   }
 
@@ -902,6 +956,7 @@ function renderMediaUi() {
       document.getElementById('play-ico').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
     }
     document.getElementById('pill-eq').classList.toggle('playing', isPlaying);
+    updateLyricSyncLabel();
 
     if (mediaState.thumbnail !== undefined) {
       const src = mediaState.thumbnail || DEFAULT_VINYL_ART;
@@ -966,7 +1021,7 @@ function renderExternalUi() {
     applyWeatherSkyTheme(w);
     document.getElementById('idle-weather-icon').innerHTML = weatherIconSvg(w.icon);
     document.getElementById('idle-weather-text').textContent = `${w.temp}°`;
-    document.getElementById('info-city').textContent = w.city || 'Jakarta';
+    document.getElementById('info-city').textContent = w.city || 'Bandung';
     const srcBadge = document.getElementById('info-source-badge');
     if (srcBadge) {
       srcBadge.textContent = w.source || 'BMKG';
@@ -1180,8 +1235,21 @@ function renderShelfUi() {
 
 function renderSettingsUi() {
   const ox = Number(config.offsetX || 0);
-  document.documentElement.style.setProperty('--pill-h', `${config.pillHeight || 34}px`);
-  document.querySelectorAll('[data-height]').forEach(b => b.classList.toggle('active', Number(b.dataset.height) === Number(config.pillHeight || 34)));
+  const pillH = Number(config.pillHeight || 34);
+  const sizeChanged = shell && shell.dataset.size !== String(pillH);
+  document.documentElement.style.setProperty('--pill-h', `${pillH}px`);
+  if (shell) shell.dataset.size = String(pillH);
+  document.querySelectorAll('[data-height]').forEach(b => b.classList.toggle('active', Number(b.dataset.height) === pillH));
+  if (sizeChanged && typeof lastPillText === 'string' && lastPillText) {
+    const remeasure = () => {
+      if (!shell || shell.dataset.size !== String(pillH) || !lastPillText) return;
+      const cur = lastPillText;
+      lastPillText = '';
+      setPillLyricText(cur);
+    };
+    requestAnimationFrame(remeasure);
+    setTimeout(remeasure, 390);
+  }
   document.querySelectorAll('[data-offset]').forEach(b => b.classList.toggle('active', Number(b.dataset.offset) === ox));
 
   document.getElementById('set-offsetx').value = String(ox);
@@ -1203,7 +1271,7 @@ function renderSettingsUi() {
   const chkHoverExp = document.getElementById('chk-hover-expand');
   if (chkHoverExp) chkHoverExp.checked = config.expandOnHover !== false;
 
-  document.getElementById('set-city').value = config.city || 'Jakarta';
+  document.getElementById('set-city').value = config.city || 'Bandung';
   document.getElementById('set-ics').value = config.icsUrl || '';
   updateClockAndAlert();
   syncNotchClass();
@@ -1311,7 +1379,7 @@ document.getElementById('btn-test-sched-notif')?.addEventListener('click', (e) =
   e.stopPropagation();
   const events = (externalState.calendar && externalState.calendar.events) || [];
   const sample = events[0] || {
-    title: 'Weekly Product Sync & Design Review',
+    title: '[P1-M01-S1] SACS Precede Wizard & Geometri Jacket 4-Kaki WD 50m',
     tag: 'Profesional',
     color: '#16a765',
     startMs: Date.now(),
@@ -1478,7 +1546,7 @@ document.getElementById('chk-hover-expand')?.addEventListener('change', (e) => {
   window.notchApi.saveConfig({ expandOnHover: e.target.checked });
 });
 document.getElementById('btn-save-city').addEventListener('click', () => {
-  const c = document.getElementById('set-city').value.trim() || 'Jakarta';
+  const c = document.getElementById('set-city').value.trim() || 'Bandung';
   window.notchApi.saveConfig({ city: c });
 });
 document.getElementById('btn-save-ics').addEventListener('click', () => {
@@ -1532,9 +1600,16 @@ window.notchApi.onMediaUpdate((d) => {
   renderMediaUi();
 });
 
+let prevLyricTrackKey = '';
 window.notchApi.onLyricsUpdate((d) => {
   lyricsState = d || { found: false, lines: [], plain: [] };
+  const nextKey = `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
+  if (lyricsState.loading || (nextKey !== '|' && nextKey !== prevLyricTrackKey)) {
+    lyricOffsetSec = 0;
+    if (nextKey !== '|') prevLyricTrackKey = nextKey;
+  }
   renderLyricsList();
+  updateLyricSyncLabel();
 });
 
 window.notchApi.onVolumeUpdate((d) => {
@@ -1596,7 +1671,7 @@ window.notchApi.getState().then(s => {
   if (s.config) { config = s.config; renderSettingsUi(); }
   if (s.shelf) { shelfState = s.shelf; renderShelfUi(); }
   if (s.external) { externalState = s.external; renderExternalUi(); }
-  if (s.lyrics) { lyricsState = s.lyrics; renderLyricsList(); }
+  if (s.lyrics) { lyricsState = s.lyrics; renderLyricsList(); updateLyricSyncLabel(); }
   if (s.media) { mediaState = s.media; renderMediaUi(); }
   updateClockAndAlert();
 });

@@ -10,7 +10,7 @@ A clear and concise description of what happened.
 
 ### Environment
 - **OS:** Windows 11 / Windows 10 (Build: ...)
-- **DynotchFlow Version:** e.g. `v4.0.0` (check `http://127.0.0.1:17420/health`)
+- **DynotchFlow Version:** e.g. `v1.0.0` (check `http://127.0.0.1:17420/health`)
 - **Monitor Setup:** Single / Multi-monitor (DPI scaling % if applicable)
 - **Media Source:** Spotify / Chrome / Edge / Other
 

@@ -2,16 +2,18 @@
 
 All notable changes to **DynotchFlow** are documented in this file.
 
-## [4.0.0] — 2026-11-11
+## [1.0.0] — 2026-11-11 (Initial Public Release)
 ### Added
-- **1-Click Standalone Installer (`DynotchFlowV4Setup.cs`):** Extracts runtime cleanly to `%LOCALAPPDATA%\Programs\DynotchFlow`, configures Desktop & Start Menu shortcuts, and launches immediately.
-- **Native WinRT C# Bridge (`NotchBridge.cs`):** Replaces legacy PowerShell background workers with a 64-bit compiled WinRT GSMTC & CoreAudio bridge (`~6 MB` RAM), including **Per-Monitor DPI V2** and same-monitor fullscreen detection.
-- **Google Calendar `.ics` Onboarding & Multi-Feed Support:** Supports single or multiple comma/whitespace-separated iCal URLs, `RRULE` (`DAILY` / `WEEKLY` with `INTERVAL`), `EXDATE` exclusions, and automatic clipboard `.ics` detection.
-- **Atmospheric Weather & Tiered Prayer Alerts:** BMKG Indonesia forecast cards with Open-Meteo global fallback, Apple-Weather-style dynamic sky effects, and H-10m, H-5m & Adzan notifications.
-- **Tray Controls & Diagnostics:** Added **Optimalkan RAM Sekarang** and **Buka Folder Program** menu items plus `/health` webhook endpoint on `127.0.0.1:17420`.
+- **1-Click Standalone Installer (`installer/DynotchFlowSetup.cs`) & Portable ZIP:** Extracts runtime cleanly to `%LOCALAPPDATA%\Programs\DynotchFlow`, configures Desktop & Start Menu shortcuts, and launches immediately.
+- **Native WinRT C# Bridge (`NotchBridge.cs`):** Compiled 64-bit WinRT GSMTC & CoreAudio bridge (`~6 MB` RAM) with **Per-Monitor DPI V2** and same-monitor fullscreen detection.
+- **Smooth Anti-Aliased Frameless Corners:** Padded `SetWindowRgn` clipping paired with native `MakeFramelessClean` caption removal eliminates top DWM caption halo bars.
+- **Hybrid Pill Lyrics & Proportional `30px` / `34px` / `40px` Scaling:** Automatically centers crisp short lyric lines without side mask fade, smoothly activates marquee on overflow, and scales pill typography/EQ bars across all three heights.
+- **Zero-RAM YouTube / DJ / Slowed+Reverb Lyric Engine (`services.js` + `renderer/app.js`):**
+  - Strips YouTube remix/upload suffixes (`Slowed + Reverb`, `Sped Up`, `Nightcore`, `Full Bass`, `// Lirik`, `#shorts`) and resolves swapped *Title — Artist* formatting automatically.
+  - Multi-pass LRCLIB matching + `lyrics.ovh` plain fallback without extra memory overhead.
+  - Automatic linear tempo scaling for Slowed/Sped-Up tracks plus manual `-0.5s` / `Reset` / `+0.5s` fine calibration bar.
+- **Multi-Calendar (`.ics`), Atmospheric Weather & Prayer Alerts:** Single or multi-feed iCal URL parsing (`RRULE` + `EXDATE`), BMKG + Open-Meteo sky effects, Kemenag RI prayer countdowns & notifications, and Drag-In/Drag-Out Notch Shelf.
 
-### Security & Hardening
-- Removed wildcard CORS headers (`Access-Control-Allow-Origin: *`) from the localhost webhook server.
-- Enforced `contextIsolation: true`, `nodeIntegration: false`, HTML escaping across dynamic renderer templates, and HTTP/HTTPS validation for external calendar event URLs.
-- Fixed flexbox `min-width` clamping on the wavy media scrubber canvas so duration timestamps never overlap the synced lyrics column.
-- Hardened `fetchCustomFeed` and `resolveJsonPath` to require public `https://` URLs (blocking localhost/private IPs/redirects) and guard prototype properties.
+### Security & Performance
+- Hard V8 heap cap (`--max-old-space-size=48`) and `--in-process-gpu` keeping idle footprint `< 50 MB RAM`.
+- Enforced `contextIsolation: true`, `nodeIntegration: false`, full HTML escaping in `escapeHtml()`, strict HTTPS validation in `fetchCustomFeed()`, and non-wildcard localhost IPC boundaries (`127.0.0.1:17420`).

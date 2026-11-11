@@ -16,11 +16,13 @@
 
     <div id="notch-shell" class="state-idle" data-size="34">
       <!-- Concave macOS top bezel wings -->
-      <svg class="wing wing-left" viewBox="0 0 12 12" aria-hidden="true">
-        <path d="M12,0 L0,0 A12,12 0 0 1 12,12 Z" />
+      <svg class="wing wing-left" viewBox="0 0 12 12" shape-rendering="geometricPrecision" aria-hidden="true">
+        <path d="M12,0 L0,0 L0,0.5 A11.5,11.5 0 0 1 11.5,12 L12,12 Z" fill="#08090d" />
+        <path d="M0,0.5 A11.5,11.5 0 0 1 11.5,12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
       </svg>
-      <svg class="wing wing-right" viewBox="0 0 12 12" aria-hidden="true">
-        <path d="M0,0 L12,0 A12,12 0 0 0 0,12 Z" />
+      <svg class="wing wing-right" viewBox="0 0 12 12" shape-rendering="geometricPrecision" aria-hidden="true">
+        <path d="M0,0 L12,0 L12,0.5 A11.5,11.5 0 0 0 0.5,12 L0,12 Z" fill="#08090d" />
+        <path d="M12,0.5 A11.5,11.5 0 0 0 0.5,12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
       </svg>
 
       <!-- Adaptive Album Glow & Blurred Cover Backdrop -->
@@ -139,6 +141,11 @@
                 <button id="btn-prev" class="ctrl-btn" title="Sebelumnya"><span data-ico="prev"></span></button>
                 <button id="btn-play" class="ctrl-btn primary" title="Play / Pause"><span id="play-ico"></span></button>
                 <button id="btn-next" class="ctrl-btn" title="Berikutnya"><span data-ico="next"></span></button>
+              </div>
+              <div id="lyric-sync-row" class="lyric-sync-row hidden" title="Kalibrasi sinkronisasi lirik (untuk lagu DJ / Slowed / YouTube)">
+                <button id="btn-sync-minus" class="sync-nudge-btn" title="Mundurkan lirik 0.5 detik">-0.5s</button>
+                <button id="btn-sync-reset" class="sync-nudge-lbl" title="Klik untuk reset offset sinkronisasi">0.0s</button>
+                <button id="btn-sync-plus" class="sync-nudge-btn" title="Majukan lirik 0.5 detik">+0.5s</button>
               </div>
             </div>
             <div class="lyrics-pane" id="lyrics-pane">
@@ -326,7 +333,7 @@
                   <button id="btn-connect-gcal" class="mini-btn subtle" title="Buka pengaturan iCal Google Calendar & auto-detect saat disalin">Ambil Link</button>
                 </div>
                 <div class="ev-row">
-                  <input id="set-ics" type="text" placeholder="Paste link iCal (.ics) Google Calendar..." />
+                  <input id="set-ics" type="text" placeholder="Paste Secret iCal (.ics) Google Calendar..." />
                   <button id="btn-save-ics" class="mini-btn accent">Simpan</button>
                 </div>
               </div>

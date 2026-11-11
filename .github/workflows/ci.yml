@@ -80,7 +80,7 @@ jobs:
           & $csc /nologo /optimize+ /target:winexe "/win32icon:NotchFlow.ico" `
             /r:System.Windows.Forms.dll /r:System.Drawing.dll `
             /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll `
-            "/out:build\DynotchFlowV4Setup_Stub.exe" "installer\DynotchFlowV4Setup.cs"
+            "/out:build\DynotchFlowSetup_Stub.exe" "installer\DynotchFlowSetup.cs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           Get-ChildItem build | Format-Table Name, Length -AutoSize
@@ -90,3 +90,10 @@ jobs:
         run: |
           npm install --ignore-scripts
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload compiled native binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynotchflow-win-x64-binaries
+          path: build/*.exe
+          if-no-files-found: error

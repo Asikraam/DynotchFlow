@@ -10,7 +10,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
-app.setAppUserModelId('DynotchFlow.DynamicIsland.V4');
+app.setAppUserModelId('DynotchFlow.DynamicIsland');
 
 const PROGRAMS_INSTALL_DIR = path.join(process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local'), 'Programs', 'DynotchFlow');
 
@@ -74,9 +74,9 @@ if (ensureInstalledInUserPrograms()) {
 }
 
 
-// V3 Pro Hybrid Low-Memory Chromium & V8 flags (96MB heap prevents OOM on HD art + iCal while keeping footprint minimal)
+// Low-Memory Chromium & V8 flags (48MB heap + working set trim keeps RAM compact while maintaining 60fps UI)
 app.commandLine.appendSwitch('in-process-gpu');
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=96 --optimize-for-size');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=48 --optimize-for-size');
 app.commandLine.appendSwitch('renderer-process-limit', '1');
 app.commandLine.appendSwitch(
   'disable-features',
@@ -289,7 +289,7 @@ function getNativeHwnd() {
   }
 }
 
-function buildNotchShapeRects(left, top, width, height, bottomRadius = 17, wingSize = 10) {
+function buildNotchShapeRects(left, top, width, height, bottomRadius = 17, wingSize = 12) {
   const x = Math.round(left);
   const y = Math.round(top);
   const w = Math.round(width);
@@ -297,17 +297,18 @@ function buildNotchShapeRects(left, top, width, height, bottomRadius = 17, wingS
   if (w <= 2 || h <= 2 || y + h <= 1) {
     return [];
   }
+  const pad = 2;
   const r = Math.min(Math.round(bottomRadius || 17), Math.floor(h / 2), Math.floor(w / 2));
-  const wing = Math.max(0, Math.min(11, Math.round(wingSize ?? 10)));
+  const wing = Math.max(0, Math.min(14, Math.round(wingSize || 12)));
   const rects = [];
 
-  // 1. Top wing scanlines (concave macOS ears connecting to screen top bezel)
-  const wingRows = Math.min(wing, h - r);
+  // 1. Top wing scanlines (12px concave ears + 2px AA buffer)
+  const wingRows = Math.min(wing, Math.max(0, h - r));
   for (let dy = 0; dy < wingRows; dy++) {
     const ry = y + dy;
     if (ry < 0) continue;
-    const rem = wing - dy;
-    const ext = Math.max(0, Math.floor(wing - Math.sqrt(Math.max(0, wing * wing - rem * rem))) - 1);
+    const rem = Math.max(0, wing - dy);
+    const ext = Math.max(pad, Math.ceil(wing - Math.sqrt(Math.max(0, wing * wing - rem * rem))) + pad);
     rects.push({
       x: Math.max(0, x - ext),
       y: ry,
@@ -316,27 +317,30 @@ function buildNotchShapeRects(left, top, width, height, bottomRadius = 17, wingS
     });
   }
 
-  // 2. Main rectangular body between top wings and bottom rounded corners
+  // 2. Main vertical body with 1px horizontal AA clearance
   const bodyStart = Math.max(0, y + wingRows);
   const bodyEnd = Math.max(bodyStart, y + h - r);
   if (bodyEnd > bodyStart) {
     rects.push({
-      x: Math.max(0, x),
+      x: Math.max(0, x - 1),
       y: bodyStart,
-      width: w,
+      width: w + 2,
       height: bodyEnd - bodyStart
     });
   }
 
-  // 3. Bottom rounded corner scanlines
-  for (let k = 1; k <= r; k++) {
-    const ry = y + h - r - 1 + k;
+  // 3. Bottom rounded corner scanlines (+2px outside circle so Chromium AA edge stays razor smooth)
+  for (let rowOffset = 0; rowOffset <= r; rowOffset++) {
+    const ry = y + h - r + rowOffset;
     if (ry < 0) continue;
-    const inset = Math.max(0, Math.round(r - Math.sqrt(Math.max(0, r * r - k * k))));
+    const dy = Math.min(r - 0.5, Math.max(0, rowOffset));
+    const rawInset = r - Math.sqrt(Math.max(0, r * r - dy * dy));
+    const inset = Math.max(-1, Math.floor(rawInset) - pad);
+    const rx = Math.max(0, x + inset);
     const rw = w - inset * 2;
     if (rw > 0) {
       rects.push({
-        x: Math.max(0, x + inset),
+        x: rx,
         y: ry,
         width: rw,
         height: 1
@@ -355,11 +359,14 @@ function applyNotchShape(rect) {
     if (!rect || rect.hidden) {
       currentShapeRect = { x: 0, y: 0, width: 0, height: 0, hidden: true };
       win.setShape([]);
+      if (win.getOpacity() !== 0) win.setOpacity(0);
+      win.setIgnoreMouseEvents(true, { forward: true });
       return;
     }
     currentShapeRect = { ...rect, hidden: false };
     const rects = buildNotchShapeRects(rect.x, rect.y, rect.width, rect.height, rect.radius, rect.wing);
     win.setShape(rects);
+    if (!isHiddenManual && win.getOpacity() !== 1) win.setOpacity(1);
   } catch {}
 }
 
@@ -545,7 +552,7 @@ function startWebhookServer() {
   httpServer = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     if (req.method === 'GET' && req.url === '/health') {
-      res.end(JSON.stringify({ ok: true, app: 'NotchFlow', version: '4.0.0' }));
+      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.0' }));
       return;
     }
     if (req.method === 'POST' && req.url === '/push') {
@@ -586,9 +593,14 @@ function startWebhookServer() {
 
 function applyAutostart(enabled) {
   try {
-    const progExe = path.join(PROGRAMS_INSTALL_DIR, 'NotchFlow.exe');
-    const localStandalone = path.join(__dirname, 'NotchFlow.exe');
-    const isSelfStandalone = !process.defaultApp && path.basename(process.execPath).toLowerCase().includes('notchflow');
+    const progDynotch = path.join(PROGRAMS_INSTALL_DIR, 'DynotchFlow.exe');
+    const progLegacy = path.join(PROGRAMS_INSTALL_DIR, 'NotchFlow.exe');
+    const progExe = fs.existsSync(progDynotch) ? progDynotch : progLegacy;
+    const localDynotch = path.join(__dirname, 'DynotchFlow.exe');
+    const localLegacy = path.join(__dirname, 'NotchFlow.exe');
+    const localStandalone = fs.existsSync(localDynotch) ? localDynotch : localLegacy;
+    const exeBaseLower = path.basename(process.execPath).toLowerCase();
+    const isSelfStandalone = !process.defaultApp && (exeBaseLower.includes('dynotchflow') || exeBaseLower.includes('notchflow'));
     const bestExe = fs.existsSync(progExe)
       ? progExe
       : (isSelfStandalone ? process.execPath : (fs.existsSync(localStandalone) ? localStandalone : process.execPath));
@@ -618,6 +630,8 @@ function createWindow() {
     y: b.y,
     frame: false,
     transparent: true,
+    thickFrame: false,
+    roundedCorners: false,
     hasShadow: false,
     resizable: false,
     movable: false,
@@ -651,8 +665,8 @@ function createWindow() {
     y: 0,
     width: 224,
     height: config.pillHeight || 34,
-    radius: 17,
-    wing: 10
+    radius: Math.round((config.pillHeight || 34) / 2),
+    wing: 12
   });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
@@ -665,7 +679,7 @@ function createWindow() {
     if (process.argv.includes('--just-installed-to-programs')) {
       setTimeout(() => {
         sendToRenderer('bridge:toast', {
-          title: 'DynotchFlow V4 Terinstal di Programs',
+          title: 'DynotchFlow Terinstal di Programs',
           body: 'Aplikasi kini berjalan aman dari AppData\\Local\\Programs\\DynotchFlow!',
           accent: '#10b981',
           duration: 4800
@@ -720,7 +734,7 @@ function createWindow() {
 function createTray() {
   trayIconImg = nativeImage.createFromBuffer(createTrayPng());
   tray = new Tray(trayIconImg);
-  tray.setToolTip('DynotchFlow V4 Ultimate — Dynamic Island (Ctrl+Alt+N)');
+  tray.setToolTip('DynotchFlow — Dynamic Island (Ctrl+Alt+N)');
   const menu = Menu.buildFromTemplate([
     {
       label: 'Tampilkan / Sembunyikan (Ctrl+Alt+N)',
@@ -766,7 +780,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Keluar NotchFlow',
+      label: 'Keluar DynotchFlow',
       click: () => app.quit()
     }
   ]);
@@ -780,6 +794,7 @@ function toggleVisibility() {
   if (isHiddenManual) {
     win.hide();
   } else {
+    win.setOpacity(1);
     win.showInactive();
     win.setAlwaysOnTop(true, 'screen-saver');
     sendToRenderer('bridge:toggle-visibility');
@@ -977,7 +992,7 @@ function setupIpc() {
     try {
       if (Notification.isSupported()) {
         const notif = new Notification({
-          title: String(payload?.title || 'Jadwal NotchFlow'),
+          title: String(payload?.title || 'Jadwal DynotchFlow'),
           body: String(payload?.body || ''),
           silent: false
         });

@@ -1,23 +1,23 @@
 <div align="center">
 
-<img src="assets/demo.gif" alt="DynotchFlow V4 Live UI Demo" width="100%" />
+<img src="assets/demo.gif" alt="DynotchFlow Live UI Demo" width="100%" />
 
 <br />
 
 # DynotchFlow
 
 **An ultra-lightweight, macOS-style Dynamic Island for Windows 10 & 11**  
-*WinRT Media & Live Synced Lyrics · Multi-Calendar (`.ics`) · BMKG Weather & Prayer Times · Drag-and-Drop Notch Shelf*
+*WinRT Media & Live Synced Lyrics · YouTube / DJ / Slowed+Reverb Sync · Multi-Calendar (`.ics`) · BMKG Weather & Prayer Times · Drag-and-Drop Notch Shelf*
 
 [![Release](https://img.shields.io/github/v/release/Asikraam/DynotchFlow?style=for-the-badge&color=38bdf8&logo=github)](https://github.com/Asikraam/DynotchFlow/releases)
 [![Windows CI](https://img.shields.io/github/actions/workflow/status/Asikraam/DynotchFlow/ci.yml?style=for-the-badge&label=Build%20%26%20Checks&logo=windows)](https://github.com/Asikraam/DynotchFlow/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)
 [![Platform](https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-6366f1?style=for-the-badge&logo=windows11)](https://github.com/Asikraam/DynotchFlow/releases)
-[![RAM Footprint](https://img.shields.io/badge/Idle%20RAM-~53%20MB-a855f7?style=for-the-badge)](#architecture--performance)
+[![RAM Footprint](https://img.shields.io/badge/Idle%20RAM-%3C%2050%20MB-a855f7?style=for-the-badge)](#architecture--performance)
 
 **English** · [Bahasa Indonesia](docs/README_ID.md)
 
-[Download Installer (`.exe`)](https://github.com/Asikraam/DynotchFlow/releases/latest) · [Features](#features) · [Google Calendar Setup](#google-calendar-setup-10-seconds) · [Build from Source](#build-from-source)
+[Downloads & Platforms](#downloads--platforms) · [Features](#features) · [Google Calendar Setup](#google-calendar-setup-10-seconds) · [Build from Source](#build-from-source)
 
 </div>
 
@@ -25,12 +25,42 @@
 
 ## Why DynotchFlow?
 
-Most desktop Dynamic Island overlays run heavy polling scripts or leave ugly translucent DWM titlebars around the pill on Windows 11. **DynotchFlow V4** combines Electron's smooth UI canvas with a compiled **64-bit native C# WinRT bridge (`NotchBridge.exe`)** and dynamic OS window-region clipping (`win.setShape`):
+Most desktop Dynamic Island overlays run heavy background polling scripts or leave jagged translucent DWM titlebars around the pill on Windows 11. **DynotchFlow** combines a streamlined Electron UI with a compiled **64-bit native C# WinRT bridge (`NotchBridge.exe`)** and clean OS window-region clipping:
 
-- **Zero DWM Caption Artifacts:** Real-time `SetWindowRgn` scanline clipping shapes the OS window to the exact concave ears and rounded bottom of the island — `0px` stray pixels outside the pill.
-- **0ms Optimistic Media Control:** Native Windows GSMTC playback (`Play/Pause/Next/Prev/Seek`) with instant UI updates and a **60fps wavy canvas scrubber** that suspends automatically when paused.
-- **~53 MB RAM & 0% CPU Idle:** Zero-IPC state diffing, cached album art & lyric DOM nodes, `--in-process-gpu`, and smart memory working-set trimming only when collapsed.
-- **100% Portable & Self-Installing:** Single `.exe` installer sets up `%LOCALAPPDATA%\Programs\DynotchFlow` with Desktop & Start Menu shortcuts in ~2 seconds.
+- **Zero DWM Titlebar Artifacts & Crisp Corners:** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo.
+- **0ms Optimistic Media Control + Zero-RAM DJ / YouTube Lyrics:** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, smart YouTube/DJ title cleaning, automatic **Slowed+Reverb / Sped-Up** linear tempo scaling, and quick `-0.5s / +0.5s` fine calibration.
+- **< 50 MB RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and smart idle trimming without slowing expanded animations.
+- **Hybrid Auto-Center + Marquee Pill Lyrics:** Short lines sit sharp and centered inside `30px` / `34px` / `40px` pill heights (with proportional font scaling), smoothly switching to edge-faded marquee scrolling only when a line overflows.
+
+---
+
+## Downloads & Platforms
+
+Choose the build that matches your operating system from [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest):
+
+| Platform / OS | Package / Build | Status | Notes |
+| :--- | :--- | :--- | :--- |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-Setup-v1.0.0-win-x64.exe` | **Available (`v1.0.0`)** | 1-click installer (`%LOCALAPPDATA%\Programs\DynotchFlow`, Desktop & Start Menu shortcuts) |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-v1.0.0-win-x64-Portable.zip` | **Available (`v1.0.0`)** | Extract anywhere and run `DynotchFlow.exe` directly with zero installation |
+| **macOS (Apple Silicon / Intel)** | Native Cocoa / MediaRemote Bridge | **Planned / Source UI** | Electron renderer runs from source; macOS CoreAudio/MediaRemote bridge PRs welcome |
+| **Linux (X11 / Wayland)** | MPRIS2 D-Bus Media Bridge | **Experimental / Source** | Electron UI runs from source; native MPRIS2 & shape bridge support planned |
+
+### Windows 1-Click Setup
+1. Download **`DynotchFlow-Setup-v1.0.0-win-x64.exe`** *(or **`DynotchFlow-v1.0.0-win-x64-Portable.zip`**)* from [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
+2. Verify the installer's **SHA-256 checksum** shown in the Release notes if desired (`Get-FileHash DynotchFlow-Setup-v1.0.0-win-x64.exe`).
+3. Double-click the `.exe` to install and launch immediately.
+
+<details>
+<summary>SHA-256 Checksums (<code>v1.0.0</code> Windows x64)</summary>
+
+| Artifact | SHA-256 |
+| :--- | :--- |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `5368D3D7F0F0808A35223AFD0B1246E738C12A6560B3766627E393A4FF6C91E9` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `D339795BF87873A2F6883C177E92478A07DDDD0CD28137BEFA49CABC5608C2DE` |
+
+</details>
+
+> **Note on Windows Defender SmartScreen:** Because DynotchFlow is an independent open-source project without a paid commercial Authenticode certificate, Windows may show *"Windows protected your PC"* on first launch. Click **More info** → **Run anyway**, inspect our [GitHub Actions CI builds](https://github.com/Asikraam/DynotchFlow/actions), or compile directly from source below.
 
 ---
 
@@ -38,19 +68,19 @@ Most desktop Dynamic Island overlays run heavy polling scripts or leave ugly tra
 
 | Module | Highlights |
 | :--- | :--- |
-| **Music & Synced Lyrics** | Works with Spotify, Chrome, Edge, Brave, YouTube Music, and any Windows GSMTC source. Features adaptive album-art accent colors, blur backdrop, and word/line-highlighted synced lyrics via **LRCLIB** (shown both expanded and in the collapsed pill). |
-| **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar iCal (`.ics`) URLs (comma/newline separated) + add quick local agendas (`+ Agenda`). Supports `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown badges, and pre-meeting notifications. |
-| **Weather & Prayer Times** | Atmospheric Apple-Weather-inspired sky effects (`Rain` / `Sun` / `Night`), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with configurable H-10m, H-5m & Adzan reminders. |
-| **Notch Shelf & Volume** | Drag-and-drop files, images, or clipboard notes into the island and drag files back out natively to Explorer, browsers, or chat apps. Scroll directly over the pill volume badge to step Windows Master Volume cleanly in even increments (`±2`). |
-| **Smart Auto-Hide** | Top-bezel cursor watcher (`Alt+H` / `Ctrl+Alt+H`) hides the pill cleanly above the screen edge for unobstructed full-screen screenshots; auto-hides only when a fullscreen app runs on the **same monitor** (Per-Monitor DPI V2 aware). |
+| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Features adaptive album-art accent glow, Hybrid Auto-Center + Marquee pill lyrics, smart DJ / remix noise stripping, auto tempo scaling for **Slowed+Reverb / Sped-Up** tracks, and `-0.5s / +0.5s` sync nudges. |
+| **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar secret iCal (`.ics`) links (comma/newline separated) + add quick local agendas (`+ Agenda`). Supports `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown chips, and start alerts. |
+| **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night`), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with H-10m, H-5m & Adzan reminders. |
+| **Notch Shelf & Volume** | Drag-and-drop files, images, or notes into the island and drag files back out natively to Explorer or web apps. Scroll over the collapsed pill volume icon to step Windows Master Volume cleanly in even increments (`±2`). |
+| **Customizable Size & Auto-Hide** | Switch between **`30px` / `34px` / `40px`** pill sizes with proportional typography, slide horizontally along your display (`Kiri / Tengah / Kanan` or pixel slider), toggle Top-Edge Auto-Hide (`Alt+H`), or hide automatically when fullscreen runs on the same monitor. |
 
-### UI Gallery (Real Renderings)
+### UI Gallery
 
 <table>
   <tr>
     <td width="50%" align="center">
       <img src="assets/preview-music.png" alt="Music Player & Live Karaoke Lyrics" />
-      <br /><sub><b>Music &amp; Live Synced Lyrics</b> · Adaptive Cover Glow &amp; 60fps Wavy Scrubber</sub>
+      <br /><sub><b>Music &amp; Live Synced Lyrics</b> · Wavy Scrubber, Album Glow &amp; Tempo Sync (`0.86x`)</sub>
     </td>
     <td width="50%" align="center">
       <img src="assets/preview-calendar.png" alt="Multi-Calendar Google Calendar View" />
@@ -71,34 +101,28 @@ Most desktop Dynamic Island overlays run heavy polling scripts or leave ugly tra
 
 ---
 
-## Installation (1-Click Setup)
-
-1. Download **`DynotchFlow_V4_Public_Setup.exe`** from [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
-2. Double-click the `.exe` to install to `%LOCALAPPDATA%\Programs\DynotchFlow`, create Desktop & Start Menu shortcuts, and launch immediately.
-
-> **Note on Windows Defender SmartScreen:** Because DynotchFlow is an independent open-source project without a paid commercial Authenticode certificate, Windows may show *"Windows protected your PC"* on first launch. Click **More info** → **Run anyway** *(or build directly from the auditable source below)*.
+## Quick Configuration
 
 ### Personalize Your City
-Open the **Setting** tab → enter your city under **Kota BMKG & Sholat Kemenag** (default: `Jakarta`) → click **Terapkan**. It automatically geocodes any city worldwide for Open-Meteo and resolves BMKG / Kemenag codes across Indonesia.
+Open the **Setting** tab → enter your city under **Kota BMKG & Sholat Kemenag** (default: `Jakarta`) → click **Terapkan**. It automatically resolves BMKG/Kemenag city codes across Indonesia and falls back to global Open-Meteo geocoding worldwide.
 
 ### Google Calendar Setup (10 Seconds)
-DynotchFlow keeps all calendar data strictly local to your PC:
+All calendar data stays strictly local on your machine:
 1. Open the **Kalender** tab and click **Sambungkan Google Calendar (.ics)** *(or go to **Setting → Ambil Link**)*.
-2. In the Google Calendar Settings page that opens, pick a calendar → scroll to **Secret address in iCal format** → click **Copy**.
-3. DynotchFlow's clipboard listener detects the `.ics` URL automatically and syncs your schedule.  
-   *(Tip: To combine multiple calendars, paste several `.ics` links separated by a comma or space into **Setting → Google Calendar (.ics)** and click **Simpan**.)*
+2. In Google Calendar Settings, choose a calendar → scroll to **Secret address in iCal format** → click **Copy**.
+3. DynotchFlow detects the copied `.ics` URL automatically and syncs your schedule. *(Paste multiple `.ics` URLs separated by commas or spaces to merge work, study, and personal calendars.)*
 
 ---
 
-## Keyboard Shortcuts & API
+## Keyboard Shortcuts & Local API
 
 | Shortcut / Endpoint | Action |
 | :--- | :--- |
-| `Alt + H` / `Ctrl + Alt + H` | Toggle **Auto-Hide to Top Edge** (slide up above bezel; touch top edge to reveal) |
+| `Alt + H` / `Ctrl + Alt + H` | Toggle **Auto-Hide to Top Edge** (slide above bezel; hover top edge to reveal) |
 | `Ctrl + Alt + N` | Toggle total visibility (show / hide island) |
-| `Scroll` on volume pill | Adjust Windows Master Volume in even `±2` steps |
-| `POST http://127.0.0.1:17420/push` | Trigger custom toast notification from local scripts (`{"title":"...","body":"...","accent":"#38bdf8","duration":4500}`) |
-| `GET http://127.0.0.1:17420/health` | Local health check (`{"ok":true,"app":"NotchFlow","version":"4.0.0"}`) |
+| `Scroll` on volume pill | Adjust Windows Master Volume in clean even `±2` steps |
+| `POST http://127.0.0.1:17420/push` | Push custom JSON toast notification (`{"title":"...","body":"...","accent":"#38bdf8","duration":4500}`) |
+| `GET http://127.0.0.1:17420/health` | Local health endpoint (`{"ok":true,"app":"DynotchFlow","version":"1.0.0"}`) |
 
 ---
 
@@ -106,14 +130,14 @@ DynotchFlow keeps all calendar data strictly local to your PC:
 
 ```mermaid
 flowchart LR
-    WIN["Windows 11 OS<br/>WinRT GSMTC & CoreAudio"] <-->|Native Stdin/Stdout JSON| NB["NotchBridge.exe<br/>(C# .NET 4.0 x64 ~6 MB)"]
+    WIN["Windows 10/11 OS<br/>WinRT GSMTC & CoreAudio"] <-->|Native Stdin/Stdout JSON| NB["NotchBridge.exe<br/>(C# .NET x64 ~6 MB)"]
     NB <--> MAIN["main.js (Electron 35)<br/>OS Region Clipping + Tray + IPC"]
     MAIN <--> REN["renderer/ (Vanilla JS)<br/>60fps Canvas + Lyrics + Shelf"]
     MAIN <--> SVC["services.js<br/>iCal RRULE · BMKG · Kemenag · LRCLIB"]
 ```
 
-- **Zero Background Polling Bloat:** `NotchBridge.exe` halts IPC payloads whenever playback is paused and skips memory working-set trims while expanded so animations stay 60fps.
-- **No Unbounded Disk Caches:** Lyrics and HD album art caches auto-prune (`max 160` entries) under `%APPDATA%\NotchFlow`.
+- **Zero Background Polling Bloat:** `NotchBridge.exe` halts high-frequency position pushes while paused, and `main.js` caps V8 memory (`--max-old-space-size=48`) with `--in-process-gpu` so idle footprint stays **under 50 MB RAM**.
+- **Bounded Disk Caches:** Synced lyrics and HD album art caches auto-prune (`max 160` entries) under `%APPDATA%\NotchFlow`.
 
 ---
 
@@ -145,5 +169,5 @@ npm start
 ## Credits & License
 
 - UI aesthetics inspired by Apple Dynamic Island, [Alcove](https://tryalcove.com/), and [NotchNook](https://lo.cafe/notchnook).
-- Powered by **Electron**, **Windows Runtime (GSMTC / CoreAudio)**, **BMKG Indonesia**, **Open-Meteo**, **myQuran API (Kemenag RI)**, **LRCLIB**, and **iTunes Search API**.
+- Powered by **Electron**, **Windows Runtime (GSMTC / CoreAudio)**, **BMKG Indonesia**, **Open-Meteo**, **myQuran API (Kemenag RI)**, **LRCLIB**, **lyrics.ovh**, and **iTunes Search API**.
 - Licensed under the [**MIT License**](LICENSE).

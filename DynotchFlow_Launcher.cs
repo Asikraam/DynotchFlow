@@ -21,12 +21,14 @@ class DynotchFlowLauncher {
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string userProfile  = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             string progDir      = Path.Combine(localAppData, "Programs", "DynotchFlow");
-            string progExe      = Path.Combine(progDir, "NotchFlow.exe");
+            string progExe      = Path.Combine(progDir, "DynotchFlow.exe");
+            string legacyExe    = Path.Combine(progDir, "NotchFlow.exe");
             string baseDir      = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
 
-            // 1. If launched from a folder that contains standalone NotchFlow.exe (e.g. moved to Downloads/Desktop)
+            // 1. If launched from a folder that contains standalone DynotchFlow.exe (e.g. moved to Downloads/Desktop)
             //    and it is not yet in %LOCALAPPDATA%\Programs\DynotchFlow, auto-install it to Programs!
-            string localExe = Path.Combine(baseDir, "NotchFlow.exe");
+            string localExe = Path.Combine(baseDir, "DynotchFlow.exe");
+            if (!File.Exists(localExe)) localExe = Path.Combine(baseDir, "NotchFlow.exe");
             string localRes = Path.Combine(baseDir, "resources", "app", "main.js");
             if (File.Exists(localExe) && File.Exists(localRes) &&
                 !string.Equals(Path.GetFullPath(baseDir), Path.GetFullPath(progDir), StringComparison.OrdinalIgnoreCase)) {
@@ -34,17 +36,18 @@ class DynotchFlowLauncher {
             }
 
             // 2. Also check if Downloads\NotchFlow_App exists and Programs\DynotchFlow is not populated yet
-            if (!File.Exists(progExe)) {
+            if (!File.Exists(progExe) && !File.Exists(legacyExe)) {
                 string dlApp = Path.Combine(userProfile, "Downloads", "NotchFlow_App");
-                if (File.Exists(Path.Combine(dlApp, "NotchFlow.exe"))) {
+                if (File.Exists(Path.Combine(dlApp, "DynotchFlow.exe")) || File.Exists(Path.Combine(dlApp, "NotchFlow.exe"))) {
                     CopyDirectoryRecursive(dlApp, progDir);
                 }
             }
 
-            // 3. Launch from %LOCALAPPDATA%\Programs\DynotchFlow\NotchFlow.exe if available
-            if (File.Exists(progExe)) {
+            string targetExe = File.Exists(progExe) ? progExe : legacyExe;
+            // 3. Launch from %LOCALAPPDATA%\Programs\DynotchFlow\DynotchFlow.exe if available
+            if (File.Exists(targetExe)) {
                 ProcessStartInfo psi = new ProcessStartInfo();
-                psi.FileName = progExe;
+                psi.FileName = targetExe;
                 psi.WorkingDirectory = progDir;
                 psi.UseShellExecute = false;
                 psi.CreateNoWindow = true;
@@ -52,7 +55,7 @@ class DynotchFlowLauncher {
                 return;
             }
 
-            // 4. Fallback: Launch via local Electron dev installation if standalone NotchFlow.exe is not present
+            // 4. Fallback: Launch via local Electron dev installation if standalone DynotchFlow.exe is not present
             string devAppDir = Path.Combine(progDir, "resources", "app");
             if (!File.Exists(Path.Combine(devAppDir, "main.js"))) devAppDir = baseDir;
             string devElectron = Path.Combine(devAppDir, "node_modules", "electron", "dist", "electron.exe");

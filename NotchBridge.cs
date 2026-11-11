@@ -4,11 +4,19 @@ using System.Text;
 using System.Threading;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
+
+[assembly: AssemblyTitle("DynotchFlow Audio & Media Bridge")]
+[assembly: AssemblyDescription("DynotchFlow Native WinRT Bridge")]
+[assembly: AssemblyProduct("DynotchFlow")]
+[assembly: AssemblyCompany("DynotchFlow")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIAudioEndpointVolume {
@@ -79,6 +87,15 @@ public static class Program {
 
     [DllImport("user32.dll")]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+    public static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+    public static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
     [DllImport("kernel32.dll")]
     public static extern bool K32EmptyWorkingSet(IntPtr hProcess);
@@ -158,6 +175,47 @@ public static class Program {
         } catch {}
     }
 
+    public static void MakeFramelessClean(long hwndVal) {
+        try {
+            IntPtr hWnd = new IntPtr(hwndVal);
+            if (hWnd == IntPtr.Zero) return;
+            notchHwnd = hWnd;
+
+            const int GWL_STYLE = -16;
+            const int GWL_EXSTYLE = -20;
+            const int WS_CAPTION = 0x00C00000;
+            const int WS_THICKFRAME = 0x00040000;
+            const int WS_MINIMIZEBOX = 0x00020000;
+            const int WS_MAXIMIZEBOX = 0x00010000;
+            const int WS_SYSMENU = 0x00080000;
+            const int WS_BORDER = 0x00800000;
+            const int WS_DLGFRAME = 0x00400000;
+            int wsPopup = unchecked((int)0x80000000);
+
+            int style = GetWindowLong32(hWnd, GWL_STYLE);
+            int strip = WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_BORDER | WS_DLGFRAME;
+            int newStyle = (style & ~strip) | wsPopup;
+            if (newStyle != style) SetWindowLong32(hWnd, GWL_STYLE, newStyle);
+
+            const int WS_EX_DLGMODALFRAME = 0x00000001;
+            const int WS_EX_WINDOWEDGE = 0x00000100;
+            const int WS_EX_CLIENTEDGE = 0x00000200;
+            const int WS_EX_STATICEDGE = 0x00020000;
+            const int WS_EX_TOOLWINDOW = 0x00000080;
+
+            int exStyle = GetWindowLong32(hWnd, GWL_EXSTYLE);
+            int exStrip = WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE;
+            int newExStyle = (exStyle & ~exStrip) | WS_EX_TOOLWINDOW;
+            if (newExStyle != exStyle) SetWindowLong32(hWnd, GWL_EXSTYLE, newExStyle);
+
+            try { int noRound = 1; DwmSetWindowAttribute(hWnd, 33, ref noRound, sizeof(int)); } catch {}
+            try { int noBorder = unchecked((int)0xFFFFFFFE); DwmSetWindowAttribute(hWnd, 34, ref noBorder, sizeof(int)); } catch {}
+            try { int noBackdrop = 1; DwmSetWindowAttribute(hWnd, 38, ref noBackdrop, sizeof(int)); } catch {}
+
+            SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020);
+        } catch {}
+    }
+
     public static bool IsFullscreenApp() {
         try {
             IntPtr h = GetForegroundWindow();
@@ -197,15 +255,18 @@ public static class Program {
 
     public static void TrimMemoryFootprint() {
         try {
-            GC.Collect(1, GCCollectionMode.Optimized, false);
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            GC.WaitForPendingFinalizers();
             using (Process me = Process.GetCurrentProcess()) {
                 K32EmptyWorkingSet(me.Handle);
+                SetProcessWorkingSetSize(me.Handle, new IntPtr(-1), new IntPtr(-1));
             }
-            foreach (string pName in new string[] { "NotchFlow", "electron" }) {
+            foreach (string pName in new string[] { "DynotchFlow", "NotchFlow", "electron" }) {
                 Process[] procs = Process.GetProcessesByName(pName);
                 foreach (Process p in procs) {
                     try {
                         K32EmptyWorkingSet(p.Handle);
+                        SetProcessWorkingSetSize(p.Handle, new IntPtr(-1), new IntPtr(-1));
                     } catch {} finally {
                         p.Dispose();
                     }
@@ -321,7 +382,7 @@ public static class Program {
         double cachedDur    = -1.0;
         bool forceMetaRefresh = true;
         int propTick = 0;
-        int idleTrimTick = 0;
+        int trimTick = 0;
         int lastVol = -1;
         bool lastMute = false;
         string lastMediaKey = "";
@@ -331,10 +392,14 @@ public static class Program {
         double lastSentPos = -999.0;
         bool isNotchExpanded = false;
 
-        // Initial one-time gentle trim after startup
         TrimMemoryFootprint();
 
         while (true) {
+            trimTick++;
+            if (!isNotchExpanded && (trimTick == 3 || trimTick == 10 || trimTick % 55 == 0)) {
+                TrimMemoryFootprint();
+            }
+
             string cmdLine;
             while (cmdQueue.TryDequeue(out cmdLine)) {
                 if (cmdLine == "__EXIT__") Environment.Exit(0);
@@ -368,7 +433,7 @@ public static class Program {
                         ToggleMute();
                     } else if (cmdLine.StartsWith("win:init:")) {
                         long hwnd = long.Parse(cmdLine.Substring(9), CultureInfo.InvariantCulture);
-                        notchHwnd = new IntPtr(hwnd);
+                        MakeFramelessClean(hwnd);
                     } else if (cmdLine.StartsWith("win:move:")) {
                         string[] parts = cmdLine.Substring(9).Split(':');
                         if (parts.Length >= 3) {
@@ -488,10 +553,6 @@ public static class Program {
                     lastSentStatus = "none";
                     lastSentFs = fs;
                     lastMediaKey = "none";
-                }
-                idleTrimTick++;
-                if (!isNotchExpanded && idleTrimTick % 800 == 0) {
-                    TrimMemoryFootprint();
                 }
             }
 

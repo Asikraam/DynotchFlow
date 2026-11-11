@@ -69,12 +69,10 @@ button, input {
   position: relative;
   pointer-events: auto;
   background: var(--bg);
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0 0 17px 17px;
-  box-shadow:
-    0 14px 36px rgba(0, 0, 0, 0.56),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+  border-radius: 0 0 calc(var(--pill-h) / 2) calc(var(--pill-h) / 2);
+  box-shadow: none;
   width: 224px;
   height: var(--pill-h);
   transform: translateY(0);
@@ -109,6 +107,17 @@ button, input {
   height: var(--pill-h);
 }
 
+/* Proportional collapsed pill scaling for 30px / 34px / 40px */
+#notch-shell[data-size="30"].state-idle { width: 214px; }
+#notch-shell[data-size="30"].state-idle-event { width: 332px; }
+#notch-shell[data-size="30"].state-media { width: 386px; }
+#notch-shell[data-size="30"].state-hud { width: 270px; }
+
+#notch-shell[data-size="40"].state-idle { width: 248px; }
+#notch-shell[data-size="40"].state-idle-event { width: 378px; }
+#notch-shell[data-size="40"].state-media { width: 440px; }
+#notch-shell[data-size="40"].state-hud { width: 304px; }
+
 #notch-shell.state-sched-alert {
   width: 410px;
   height: 58px;
@@ -125,14 +134,14 @@ button, input {
 .wing {
   position: absolute;
   top: 0;
-  width: 11px;
-  height: 11px;
-  fill: var(--bg);
+  width: 12px;
+  height: 12px;
+  overflow: hidden;
   pointer-events: none;
   z-index: 2;
 }
-.wing-left { left: -10px; }
-.wing-right { right: -10px; }
+.wing-left { left: -12px; }
+.wing-right { right: -12px; }
 
 .cover-backdrop-clip {
   position: absolute;
@@ -337,27 +346,43 @@ button, input {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.pill-lyric-wrap.is-overflow {
+  justify-content: flex-start;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
 }
 
 .pill-lyric-text {
   display: inline-block;
   white-space: nowrap;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #ffffff;
   letter-spacing: -0.1px;
-  padding-left: 4px;
-  transition: opacity 0.2s ease;
+  text-align: center;
+  animation: lyric-fade-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .pill-lyric-text.marquee {
+  padding-left: 10px;
+  padding-right: 12px;
   animation: lyric-marquee var(--marquee-dur, 7s) linear infinite;
 }
 
+@keyframes lyric-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes lyric-marquee {
-  0%, 14% { transform: translateX(0); }
+  0%, 15% { transform: translateX(0); }
   85%, 100% { transform: translateX(var(--marquee-shift, -40%)); }
 }
 
@@ -365,7 +390,7 @@ button, input {
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 13px;
+  height: var(--eq-max, 13px);
   flex-shrink: 0;
 }
 
@@ -384,8 +409,46 @@ button, input {
 
 @keyframes eq {
   0%, 100% { height: 3.5px; opacity: 0.65; }
-  50% { height: 13px; opacity: 1; }
+  50% { height: var(--eq-max, 13px); opacity: 1; }
 }
+
+/* Proportional font & visual scaling for pill heights 30 / 34 / 40px */
+#notch-shell[data-size="30"] {
+  --eq-max: 11px;
+}
+#notch-shell[data-size="30"] .collapsed-view { padding: 0 11px; }
+#notch-shell[data-size="30"] .pill-lyric-text { font-size: 11.5px; }
+#notch-shell[data-size="30"] .mono-time { font-size: 11.5px; }
+#notch-shell[data-size="30"] .idle-badge { font-size: 11px; }
+#notch-shell[data-size="30"] .idle-alert { font-size: 9.5px; }
+#notch-shell[data-size="30"] .hud-label,
+#notch-shell[data-size="30"] .hud-value { font-size: 11px; }
+
+#notch-shell[data-size="34"] {
+  --eq-max: 13px;
+}
+#notch-shell[data-size="34"] .pill-lyric-text { font-size: 12.5px; }
+
+#notch-shell[data-size="40"] {
+  --eq-max: 16px;
+}
+#notch-shell[data-size="40"] .collapsed-view { padding: 0 15px; }
+#notch-shell[data-size="40"] .pill-art { border-radius: 7px; }
+#notch-shell[data-size="40"] .pill-lyric-text {
+  font-size: 14px;
+  letter-spacing: -0.15px;
+}
+#notch-shell[data-size="40"] .mono-time { font-size: 14px; }
+#notch-shell[data-size="40"] .idle-badge { font-size: 13.5px; gap: 6px; }
+#notch-shell[data-size="40"] .idle-alert {
+  font-size: 11.5px;
+  max-width: 245px;
+  padding: 2.5px 9px;
+}
+#notch-shell[data-size="40"] .eq-bars { gap: 2.4px; }
+#notch-shell[data-size="40"] .eq-bars span { width: 2.6px; }
+#notch-shell[data-size="40"] .hud-label,
+#notch-shell[data-size="40"] .hud-value { font-size: 12.5px; }
 
 /* TRANSIENT HUD */
 .pill-hud {
@@ -466,21 +529,22 @@ button, input {
 .tab-group {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 7.5px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .tab-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3.5px;
   height: 20px;
   padding: 0 2px;
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.46);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   letter-spacing: -0.1px;
   white-space: nowrap;
@@ -511,8 +575,8 @@ button, input {
 }
 
 .tab-ico svg {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   display: block;
   opacity: 0.85;
 }
@@ -541,7 +605,8 @@ button, input {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .icon-chip {
@@ -770,6 +835,35 @@ input[type="range"]::-webkit-slider-thumb {
 .ctrl-btn.primary:hover {
   transform: scale(1.05);
   background: #ffffff;
+}
+
+.lyric-sync-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+  opacity: 0.72;
+  transition: opacity 0.16s ease;
+}
+.lyric-sync-row:hover { opacity: 1; }
+.sync-nudge-btn,
+.sync-nudge-lbl {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(235, 235, 245, 0.85);
+  border-radius: 99px;
+  padding: 1.5px 7px;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.sync-nudge-btn:hover,
+.sync-nudge-lbl:hover {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  color: #fff;
 }
 
 .lyrics-pane {
@@ -1491,7 +1585,7 @@ input[type="range"]::-webkit-slider-thumb {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   align-content: start;
   padding: 2px;
@@ -1509,6 +1603,8 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
