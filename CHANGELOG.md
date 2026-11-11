@@ -5,6 +5,7 @@ All notable changes to **DynotchFlow** are documented in this file.
 ## [1.0.0] — 2026-11-11 (Initial Public Release)
 ### Added
 - **1-Click Standalone Installer (`installer/DynotchFlowSetup.cs`) & Portable ZIP:** Extracts runtime cleanly to `%LOCALAPPDATA%\Programs\DynotchFlow`, configures Desktop & Start Menu shortcuts, and launches immediately.
+- **Zero-Config Source Build (`scripts/build-bridge.js`):** Running `npm install && npm start` automatically compiles `NotchBridge.exe` when missing or stale via Windows' built-in `.NET Framework 4.x` compiler (no manual `csc.exe` command needed).
 - **Native WinRT C# Bridge (`NotchBridge.cs`):** Compiled 64-bit WinRT GSMTC & CoreAudio bridge (`~6 MB` RAM) with **Per-Monitor DPI V2** and same-monitor fullscreen detection.
 - **Smooth Anti-Aliased Frameless Corners:** Padded `SetWindowRgn` clipping paired with native `MakeFramelessClean` caption removal eliminates top DWM caption halo bars.
 - **Hybrid Pill Lyrics & Proportional `30px` / `34px` / `40px` Scaling:** Automatically centers crisp short lyric lines without side mask fade, smoothly activates marquee on overflow, and scales pill typography/EQ bars across all three heights.

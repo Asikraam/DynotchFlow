@@ -1,58 +1,86 @@
-# Panduan DynotchFlow (`v1.0.0`)
+<div align="center">
 
-[Back to English README](../README.md)
+<img src="../assets/demo.gif" alt="Demo Live UI DynotchFlow — Pill Lirik, Tema Normal & Matte Minimalist" width="100%" />
 
-<p align="center">
-  <img src="../assets/demo.gif" alt="Demo UI DynotchFlow" width="100%" />
-</p>
+<br />
 
-**DynotchFlow** adalah aplikasi **Dynamic Island** untuk Windows 10 & 11 yang super ringan (**`< 50 MB` RAM saat idle**, `0%` CPU idle), memadukan UI Electron dengan **Native C# WinRT Bridge** (`NotchBridge.exe`) dan OS window clipping tanpa bingkai kotak DWM.
+# DynotchFlow (`v1.0.0`)
 
----
+**Dynamic Island super ringan untuk Windows 10 & 11**  
+*Lirik lagu sinkron otomatis · Tema Normal Glow & Matte Minimalist · Google Calendar (`.ics`) · Cuaca & Jadwal Sholat · Shelf drag-and-drop — **RAM di bawah 50 MB**.*
 
-## Daftar Unduhan & Dukungan Sistem Operasi
+[Back to English README](../README.md) · [Download Rilis](https://github.com/Asikraam/DynotchFlow/releases/latest)
 
-| Platform | Paket Rilis | Status | Keterangan |
-| :--- | :--- | :--- | :--- |
-| **Windows 10 / 11 (x64)** | `DynotchFlow-Setup-v1.0.0-win-x64.exe` | **Tersedia (`v1.0.0`)** | Installer 1-klik otomatis ke `%LOCALAPPDATA%\Programs\DynotchFlow` + shortcut |
-| **Windows 10 / 11 (x64)** | `DynotchFlow-v1.0.0-win-x64-Portable.zip` | **Tersedia (`v1.0.0`)** | Ekstrak lalu langsung jalankan `DynotchFlow.exe` tanpa instalasi |
-| **macOS (Apple Silicon / Intel)** | Native Bridge *(Direncanakan)* | **Source / Segera** | UI Electron lintas platform; bridge MediaRemote/CoreAudio dalam pengembangan |
-| **Linux (X11 / Wayland)** | MPRIS2 D-Bus *(Eksperimental)* | **Source / Segera** | Dukungan MPRIS2 media & window shaping direncanakan |
+</div>
 
 ---
 
-## Cara Instal untuk Pengguna Umum (Tanpa Coding)
+## ✨ Kenapa Pakai DynotchFlow?
 
-1. Unduh **`DynotchFlow-Setup-v1.0.0-win-x64.exe`** *(atau versi portabel `.zip`)* dari halaman [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
-2. Klik 2x `.exe` tersebut.  
-   *(Catatan: Karena aplikasi open-source mandiri ini belum memakai sertifikat Authenticode komersial berbayar, jika muncul pop-up **Windows protected your PC / SmartScreen**, klik **More info** → **Run anyway**).*
-3. Installer otomatis memasang aplikasi ke `%LOCALAPPDATA%\Programs\DynotchFlow`, membuat shortcut **Desktop & Start Menu**, lalu langsung menjalankannya.
-
----
-
-## Fitur Utama & Pembaruan Terkini
-
-- **Antarmuka Bahasa Inggris Ringkas (Siap Internasional):** Seluruh label UI (*Music*, *Calendar*, *Weather*, *Shelf*, *Settings*, filter kalender, waktu sholat internasional `Fajr–Isha`, dan installer Setup) kini memakai teks Inggris yang singkat & bersih tanpa terpotong, sambil tetap kompatibel dengan cache lokal yang sudah tersimpan.
-- **Dual Tema Identik (`Normal` Glow & `Matte` Minimalist):** Pilih tema **Normal** (cahaya adaptif sampul lagu & efek langit) atau **Matte Minimalist** (`#09090b` / `#121215` bersih tanpa glow) di menu **Settings (`⚙`)**. Kedua tema memiliki ukuran jendela & tata letak yang **100% identik (`524x266`)** tanpa perubahan dimensi panel.
-- **Lirik Sinkron Hybrid (Auto-Center + Marquee) & Hold Instrumen:** Baris lirik pendek/sedang tampil rata tengah dengan teks tajam tanpa bayangan tepi; baris lirik panjang otomatis bergeser halus (*marquee*). Saat lagu masih intro sebelum vokal, jeda instrumen panjang (`>= 10s` / `[Instrumental]` / `♪`), atau outro, pill otomatis menahan tampilan judul lagu dengan tenang tanpa kedip teks acak.
-- **Auto-Sync R&B / Rap / Live & VEVO Tanpa Bebani RAM (`< 50 MB` Idle):**
-  - Waterfall pencarian multi-sumber (**LRCLIB -> ejaan resmi iTunes -> Kugou LRC skor durasi -> `lyrics.ovh`**) lengkap dengan normalisasi `$ -> s` (*A$AP*, *Ty Dolla $ign*), pembersih channel *VEVO* / *COLORS SHOW* / *Tiny Desk*, pembersih `ft.` / `feat.` / `with` dan tag live (`Live at ...`, `Fancam`, `Acoustic Cover`, `Slowed + Reverb`, `Sped Up`, `Full Bass`).
-  - Otomatis menghitung **skala tempo linier** pada varian *Slowed/Sped-Up*, penyesuaian ritme cepat R&B/Rap, `[offset:]` LRC, klik baris lirik untuk melompat ke detik lagu, serta penjagaan aman video konser / mix panjang (`> 15 menit`) agar RAM tetap ringan tanpa pemrosesan audio/ASR.
-- **Tepi Halus & Keamanan Server Lokal (`:17420`):** Pemotongan wilayah jendela `SetWindowRgn` ber-padding dan strip titlebar win32 menghasilkan sudut lengkung bersih tanpa garis abu-abu, auto-trim RAM otomatis (`~12–45 MB` saat idle), serta endpoint webhook `127.0.0.1:17420` yang menolak permintaan browser lintas situs (*cross-origin* `403`).
-- **Multi-Kalender `.ics`, Cuaca BMKG & Jadwal Sholat Kemenag RI:** Efek langit dinamis (Hujan, Cerah/Senja, Malam), pengingat Adzan & acara mendadak, serta **Shelf Drag-In / Drag-Out** file & catatan.
+- **Sangat Ringan (`< 50 MB` RAM & `0%` CPU saat Idle):** Jalan di atas layar dengan bridge WinRT native super kecil (`NotchBridge.exe`, total RAM settled `~11–45 MB`), aman menemani kerja, browsing multi-tab, maupun main game tanpa bikin berat.
+- **2 Tema Rapi (`Normal` Glow & `Matte` Minimalist):** Pilih tema **Normal** (cahaya adaptif sampul album + efek langit cuaca) atau **Matte Minimalist** (permukaan hitam bersih `#09090b` / `#121215` tanpa glow). Ukuran kedua tema **100% identik (`524×266`)** dan sudut lengkung atasnya halus tanpa garis kotak titlebar.
+- **Lirik Sinkron Otomatis dari Berbagai Pemutar & Video:** Mendukung **Spotify**, **YouTube**, **YouTube Music**, **Chrome**, **Edge**, **Brave**, hingga **VLC**. Pintar mencocokkan lagu R&B/Rap (`$` → `s`), judul *VEVO / COLORS SHOW / Tiny Desk*, *cover* akustik, maupun *Slowed + Reverb* — baris pendek otomatis rata tengah di pill, baris panjang bergeser halus (*marquee*), dan diam rapi ke `Judul · Artis` saat intro/instrumen/outro tanpa tombol manual yang mengganggu.
+- **Semua Kebutuhan Harian di Atas Layar:** Cek jadwal **Google Calendar**, **Cuaca BMKG & 5 Waktu Sholat**, atur volume Windows cukup dengan *scroll* mouse di ikon volume, dan simpan file/catatan sementara di **Notch Shelf**.
 
 ---
 
-## Pengaturan Kota & Google Calendar (10 Detik)
+## 📦 Cara Unduh & Instal (Tanpa Coding)
 
-- **Atur Kota Cuaca & Sholat:** Buka ikon **Settings (`⚙`)** → isi kota pada kolom **City (Weather & Prayer)** (default: `Jakarta`) → klik **Apply**.
-- **Sambungkan Google Calendar Milikmu:**
-  1. Buka tab **Calendar** → klik **Connect Google Calendar (.ics)** *(atau klik **Settings (`⚙`) → Get Link**)*.
+Pilih file sesuai kebutuhan dari halaman [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest):
+
+| Platform | Paket | Keterangan |
+| :--- | :--- | :--- |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-Setup-v1.0.0-win-x64.exe` | **Direkomendasikan** — Installer 1-klik ke `%LOCALAPPDATA%\Programs\DynotchFlow` + shortcut |
+| **Windows 10 / 11 (x64)** | `DynotchFlow-v1.0.0-win-x64-Portable.zip` | **Portabel** — Ekstrak lalu langsung buka `DynotchFlow.exe` tanpa instalasi |
+| **macOS / Linux** | *UI Source* | UI berjalan dari source; dukungan bridge native macOS/Linux menyusul |
+
+### Langkah Instalasi
+1. Unduh **`DynotchFlow-Setup-v1.0.0-win-x64.exe`** *(atau file `.zip` portabel)* di [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
+2. Klik 2x `.exe` untuk memasang dan langsung menjalankan DynotchFlow.
+3. **Jika muncul peringatan Windows Defender SmartScreen (*"Windows protected your PC"*):** Hal ini wajar untuk proyek open-source mandiri tanpa sertifikat berbayar. Cukup klik **More info** → **Run anyway**. Semua kode terbuka dan build binary diverifikasi lewat [**GitHub Actions CI**](https://github.com/Asikraam/DynotchFlow/actions).
+
+---
+
+## 🖼️ Tampilan Fitur & Dual Tema
+
+| Tema Normal (`Music`, `Calendar`, `Weather`, `Shelf`) | Tema Matte Minimalist & Pill Lirik |
+| :---: | :---: |
+| <img src="../assets/preview-music.png" alt="Tema Normal Musik" /> | <img src="../assets/preview-matte.png" alt="Tema Matte Minimalist Musik" /> |
+| <img src="../assets/preview-settings.png" alt="Settings Tema Normal" /> | <img src="../assets/preview-matte-settings.png" alt="Settings Tema Matte" /> |
+
+*(Lihat pratinjau lengkap **Collapsed Pill**, **Calendar**, **Weather**, dan **Shelf** di [README Utama](../README.md#️-ui-gallery)).*
+
+---
+
+## ⚡ Pengaturan Kilat (10 Detik)
+
+- **Atur Kota Cuaca & Jadwal Sholat:**
+  Buka ikon **`⚙` (Settings)** di pojok kanan atas → isi kota pada **City (Weather & Prayer)** *(default: `Jakarta`)* → klik **Apply**. Mendukung **BMKG & Kemenag RI** di seluruh Indonesia serta **Open-Meteo** untuk kota luar negeri.
+- **Sambungkan Google Calendar *(Aman & Lokal di PC)*:**
+  1. Buka tab **Calendar** → klik **Connect Google Calendar (.ics)** *(atau klik **`⚙` → Get Link**)*.
   2. Di halaman pengaturan Google Calendar yang terbuka, pilih kalendermu → gulir ke **Secret address in iCal format** → klik **Copy**.
-  3. DynotchFlow mendeteksi link `.ics` dari clipboard secara otomatis dan menampilkan jadwalmu *(mendukung beberapa link `.ics` dipisah koma/spasi)*.
+  3. DynotchFlow langsung mendeteksi link dari clipboard dan menampilkan acaramu *(bisa tempel beberapa link `.ics` dipisah koma atau spasi)*.
 
-## Pintasan Keyboard
+---
 
-- `Alt + H` / `Ctrl + Alt + H` — Sembunyikan island ke tepi atas layar (*Auto-Hide Top Edge*), sentuh tepi atas dengan kursor untuk memunculkan lagi.
-- `Ctrl + Alt + N` — Sembunyikan / tampilkan total.
-- Scroll mouse di ikon volume pada pill — Naik/turunkan volume Windows kelipatan genap (`±2`).
+## ⌨️ Pintasan Keyboard & Tips Cepat
+
+- `Alt + H` / `Ctrl + Alt + H` — Sembunyikan island ke tepi atas layar (*Auto-Hide Top Edge*), sentuh tepi atas layar dengan kursor untuk memunculkannya kembali.
+- `Ctrl + Alt + N` — Sembunyikan / tampilkan island secara cepat.
+- **Scroll mouse** di ikon volume pada pill — Naik/turunkan volume Windows kelipatan genap (`±2`).
+- **Klik baris lirik** saat panel Music terbuka — Langsung lompat ke detik lagu yang diklik *(untuk pemutar yang mendukung seek)*.
+
+---
+
+## 🛠️ Jalankan dari Source Code (Cukup 4 Perintah)
+
+Prasyarat: **Windows 10/11 (64-bit)** dan **Node.js 18+** *(memakai compiler bawaan Windows `.NET Framework 4.x csc.exe`, tidak perlu install Visual Studio)*.
+
+```powershell
+git clone https://github.com/Asikraam/DynotchFlow.git
+cd DynotchFlow
+npm install
+npm start
+```
+
+`npm start` otomatis memanggil `scripts/build-bridge.js` untuk meng-compile `NotchBridge.exe` jika belum ada atau berubah, lalu langsung menjalankan DynotchFlow.

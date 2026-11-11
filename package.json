@@ -5,7 +5,10 @@
   "description": "Custom macOS-style Dynamic Island for Windows 11 with synced lyrics, Google Calendar (.ics), BMKG weather, prayer schedule, Notch shelf & native WinRT bridge",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "prestart": "node scripts/build-bridge.js",
+    "start": "electron .",
+    "build:bridge": "node scripts/build-bridge.js --force",
+    "build:native": "node scripts/build-bridge.js --all --force"
   },
   "license": "MIT",
   "devDependencies": {
