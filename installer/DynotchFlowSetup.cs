@@ -40,7 +40,7 @@ public static class DynotchFlowSetup {
                 AutoSize = true
             };
             lblStatus = new Label {
-                Text = "Menyiapkan instalasi...",
+                Text = "Preparing installation...",
                 Font = new Font("Segoe UI", 9f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(170, 182, 200),
                 Location = new Point(22, 48),
@@ -165,14 +165,14 @@ public static class DynotchFlowSetup {
 
     private static void ExtractPayload(string selfPath, string targetDir, SetupForm form) {
         using (var fs = new FileStream(selfPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            if (fs.Length <= 16) throw new InvalidOperationException("Payload installer tidak valid.");
+            if (fs.Length <= 16) throw new InvalidOperationException("Invalid installer payload.");
             fs.Seek(-16, SeekOrigin.End);
             byte[] footer = new byte[16];
-            if (fs.Read(footer, 0, 16) != 16) throw new InvalidOperationException("Gagal membaca footer.");
+            if (fs.Read(footer, 0, 16) != 16) throw new InvalidOperationException("Failed to read installer footer.");
             long magic = BitConverter.ToInt64(footer, 0);
             long zipLen = BitConverter.ToInt64(footer, 8);
             if (magic != PAYLOAD_MAGIC || zipLen <= 0 || zipLen + 16 >= fs.Length) {
-                throw new InvalidOperationException("Paket DynotchFlow tidak ditemukan di dalam EXE.");
+                throw new InvalidOperationException("DynotchFlow package not found inside EXE.");
             }
 
             string tmpZip = Path.Combine(Path.GetTempPath(), "dynotchflow_pkg_" + Process.GetCurrentProcess().Id + ".zip");
@@ -188,7 +188,7 @@ public static class DynotchFlowSetup {
                         outZip.Write(buf, 0, r);
                         rem -= r;
                         int pct = 15 + (int)(((total - rem) * 20) / total);
-                        form.SetProgress("Menyiapkan paket DynotchFlow...", pct);
+                        form.SetProgress("Preparing DynotchFlow package...", pct);
                     }
                 }
 
@@ -201,7 +201,7 @@ public static class DynotchFlowSetup {
                         idx++;
                         if (idx % 6 == 0 || idx == count) {
                             int pct = 35 + (idx * 55) / count;
-                            form.SetProgress("Memasang ke AppData\\Local\\Programs\\DynotchFlow...", pct);
+                            form.SetProgress("Installing to AppData\\Local\\Programs\\DynotchFlow...", pct);
                         }
                         string destPath = Path.GetFullPath(Path.Combine(targetDir, entry.FullName));
                         if (!destPath.StartsWith(rootFull, StringComparison.OrdinalIgnoreCase)) continue;
@@ -236,12 +236,12 @@ public static class DynotchFlowSetup {
             form.Shown += (s, e) => {
                 Task.Run(() => {
                     try {
-                        form.SetProgress("Menghentikan versi lama...", 8);
+                        form.SetProgress("Stopping previous version...", 8);
                         KillProcesses("NotchFlow", "DynotchFlow", "NotchFlow_Launcher", "DynotchFlow_Launcher", "NotchBridge");
 
                         ExtractPayload(selfPath, progDir, form);
 
-                        form.SetProgress("Membersihkan sisa versi lama & membuat shortcut...", 92);
+                        form.SetProgress("Cleaning legacy files & creating shortcuts...", 92);
                         CleanOldArtifacts(progDir);
 
                         string runExe = File.Exists(exePath) ? exePath : legacyExe;
@@ -255,10 +255,10 @@ public static class DynotchFlowSetup {
                         }
 
                         if (!File.Exists(runExe)) {
-                            throw new FileNotFoundException("DynotchFlow.exe tidak ditemukan setelah ekstraksi.", runExe);
+                            throw new FileNotFoundException("DynotchFlow.exe was not found after extraction.", runExe);
                         }
 
-                        form.SetProgress("Menjalankan DynotchFlow...", 100);
+                        form.SetProgress("Launching DynotchFlow...", 100);
                         var psi = new ProcessStartInfo {
                             FileName = runExe,
                             Arguments = "--just-installed-to-programs",
@@ -278,7 +278,7 @@ public static class DynotchFlowSetup {
 
             Application.Run(form);
             if (fatalErr != null) {
-                MessageBox.Show("Instalasi DynotchFlow gagal:\n" + fatalErr.Message, "DynotchFlow Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("DynotchFlow installation failed:\n" + fatalErr.Message, "DynotchFlow Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

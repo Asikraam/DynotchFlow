@@ -27,9 +27,9 @@
 
 Most desktop Dynamic Island overlays run heavy background polling scripts or leave jagged translucent DWM titlebars around the pill on Windows 11. **DynotchFlow** combines a streamlined Electron UI with a compiled **64-bit native C# WinRT bridge (`NotchBridge.exe`)** and clean OS window-region clipping:
 
-- **Zero DWM Titlebar Artifacts & Dual Theme (`Normal` / `Matte`):** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo. Switch cleanly between **Normal** (album-reactive glow & atmospheric sky) and **Matte Minimalist** (`#09090b` / `#121215`, zero glow).
-- **Clean Auto-Synced Lyrics + Instrumental Hold (`< 50 MB` RAM):** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, universal fuzzy title matching across **LRCLIB**, **iTunes canonical spelling**, **Kugou LRC**, and **`lyrics.ovh`**, automatic tempo scaling for *Slowed / Sped-Up / Remix* variants, click-line-to-seek, and calm metadata holds during pre-vocal intros, `[Instrumental]`/`♪` breaks, long solos (`>= 10s`), and post-outro fadeouts — with zero clutter buttons.
-- **< 50 MB Settled RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and automated idle working-set trimming (`~23–40 MB` settled across processes).
+- **Zero DWM Titlebar Artifacts & Dual Theme (`Normal` / `Matte`) Parity:** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo. Switch cleanly between **Normal** (album-reactive glow & atmospheric sky) and **Matte Minimalist** (`#09090b` / `#121215`, zero glow & disabled blur layer) — with **100% pixel-identical `524x266` dimensions** across both themes.
+- **Clean Auto-Synced Lyrics for Official, R&B/Rap, VEVO & Live (`< 50 MB` RAM):** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, fuzzy title & symbol normalization (`$ -> s`, *VEVO*/*COLORS SHOW*/*Tiny Desk* cleanup, `ft.`/`feat.`/`with` clause stripping) across **LRCLIB**, **iTunes canonical spelling**, **duration-scored Kugou LRC**, and **`lyrics.ovh`**, faster R&B/Rap cadence tracking, automatic tempo scaling for *Slowed / Sped-Up / Remix* variants, click-line-to-seek, and calm metadata holds during pre-vocal intros, `[Instrumental]`/`♪` breaks, long solos (`>= 10s`), and post-outro fadeouts.
+- **< 50 MB Settled RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and automated idle working-set trimming (`~12–40 MB` Private Working Set across processes).
 - **Hybrid Auto-Center + Marquee Pill Lyrics:** Short lines sit sharp and centered inside `30px` / `34px` / `40px` pill heights (with proportional font scaling), smoothly switching to edge-faded marquee scrolling only when a line overflows.
 
 ---
@@ -55,8 +55,8 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `E7968324A81547F507B453C63AF69BAC20F2123BED429BD566E548296480D899` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `37940C7EBA36D3FE073C333FB5D90CB851C806E727A73DA116BBFBBBCFFCB92C` |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `CCCF4550A526C2F9E9507B97845374AC88F95722840FD41E612EF039A7A4D532` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `90A2E51C1124330E25B7D7EFC04CB823C8D715BACB625382852BB47F39C8E075` |
 
 </details>
 
@@ -68,12 +68,12 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Module | Highlights |
 | :--- | :--- |
-| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Matches official, live concert, fancam, acoustic cover, and DJ/Slowed+Reverb uploads via LRCLIB, iTunes canonical lookup, Kugou LRC, and `lyrics.ovh`. Auto-scales slowed/spedup tempos (`0.58x–1.55x`), lets you click any lyric line to seek, and holds cleanly on `Title · Artist` during intros, `[Instrumental]`/`♪` breaks, `>= 10s` solos, and outros. |
-| **Dual Theme (`Normal` / `Matte`)** | Choose **Normal** (album-reactive glow & animated sky effects) or **Matte Minimalist** (pure `#09090b` / `#121215` flat minimalist canvas with zero glow) directly from the top-right `⚙` Settings menu, complete with collapsible `+ JSON API` drawer. |
-| **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar secret iCal (`.ics`) links (comma/newline separated) + add quick local agendas (`+ Agenda`). Supports `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown chips, and start alerts. |
-| **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night` in Normal mode), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with H-10m, H-5m & Adzan reminders. |
+| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Matches official, R&B/Rap (`$` -> `s`, `ft.`/`with` cleanup), VEVO, COLORS SHOW, Tiny Desk, live stage, fancam, acoustic cover, and DJ/Slowed+Reverb uploads via LRCLIB, iTunes canonical lookup, duration-scored Kugou LRC, and `lyrics.ovh`. Auto-scales slowed/spedup tempos (`0.58x–1.55x`), tunes rapid-line cadence, lets you click any lyric line to seek, and holds cleanly on `Title · Artist` during intros, `[Instrumental]`/`♪` breaks, `>= 10s` solos, and outros. |
+| **Dual Theme (`Normal` / `Matte`)** | Choose **Normal** (album-reactive glow & animated sky effects) or **Matte Minimalist** (pure `#09090b` / `#121215` flat minimalist canvas with zero glow and identical `524x266` sizing) directly from the top-right `⚙` Settings menu, complete with collapsible `+ JSON API` drawer. |
+| **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar secret iCal (`.ics`) links (comma/newline separated) + add quick local agendas (`+ Event`) with crisp `Study` / `Work` / `Social` / `Personal` category pills, `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown badges, and start alerts. |
+| **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night` in Normal mode), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily 5-prayer schedule (`Fajr`, `Dhuhr`, `Asr`, `Maghrib`, `Isha`) with H-10m, H-5m & Adzan alerts. |
 | **Notch Shelf & Volume** | Drag-and-drop files, images, or notes into the island and drag files back out natively to Explorer or web apps. Scroll over the collapsed pill volume icon to step Windows Master Volume cleanly in even increments (`±2`). |
-| **Customizable Size & Auto-Hide** | Switch between **`30px` / `34px` / `40px`** pill sizes with proportional typography, slide horizontally along your display (`Kiri / Tengah / Kanan` or pixel slider), toggle Top-Edge Auto-Hide (`Alt+H`), or hide automatically when fullscreen runs on the same monitor. |
+| **Customizable Size & Auto-Hide** | Switch between **`30px` / `34px` / `40px`** pill sizes with proportional typography, slide horizontally along your display (`Left / Center / Right` or `Fine Offset` slider), toggle Top-Edge Auto-Hide (`Alt+H`), or hide automatically when fullscreen runs on the same monitor. |
 
 ### UI Gallery
 
@@ -115,13 +115,13 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 ## Quick Configuration
 
 ### Personalize Your City
-Open **Setting (`⚙`)** → enter your city under **Kota BMKG & Sholat Kemenag** (default: `Jakarta`) → click **Terapkan**. It automatically resolves BMKG/Kemenag city codes across Indonesia and falls back to global Open-Meteo geocoding worldwide.
+Open **Settings (`⚙`)** → enter your city under **City (Weather & Prayer)** (default: `Jakarta`) → click **Apply**. It automatically resolves BMKG/Kemenag city codes across Indonesia and falls back to global Open-Meteo geocoding worldwide.
 
 ### Google Calendar Setup (10 Seconds)
 All calendar data stays strictly local on your machine:
-1. Open the **Kalender** tab and click **Sambungkan Google Calendar (.ics)** *(or go to **Setting (`⚙`) → Ambil Link**)*.
+1. Open the **Calendar** tab and click **Connect Google Calendar (.ics)** *(or go to **Settings (`⚙`) → Get Link**)*.
 2. In Google Calendar Settings, choose a calendar → scroll to **Secret address in iCal format** → click **Copy**.
-3. DynotchFlow detects the copied `.ics` URL automatically and syncs your schedule. *(Paste multiple `.ics` URLs separated by commas or spaces to merge work, study, and personal calendars.)*
+3. DynotchFlow detects the copied `.ics` URL automatically and syncs your schedule. *(Paste multiple `.ics` URLs separated by commas or spaces to merge study, work, and personal calendars.)*
 
 ---
 
@@ -147,7 +147,7 @@ flowchart LR
     MAIN <--> SVC["services.js<br/>iCal RRULE · BMKG · Kemenag · LRCLIB"]
 ```
 
-- **Zero Background Polling Bloat:** `NotchBridge.exe` halts high-frequency position pushes while paused, `main.js` caps V8 memory (`--max-old-space-size=48`) with `--in-process-gpu`, and automated post-boot/idle working-set trimming keeps settled footprint at **`~23–45 MB` RAM** (`< 50 MB`).
+- **Zero Background Polling Bloat:** `NotchBridge.exe` halts high-frequency position pushes while paused, `main.js` caps V8 memory (`--max-old-space-size=48`) with `--in-process-gpu`, and automated post-boot/idle working-set trimming keeps settled Private Working Set footprint at **`~12–45 MB` RAM** (`< 50 MB`).
 - **Hardened Localhost IPC (`127.0.0.1:17420`):** Rejects cross-origin browser requests (`Origin`, `OPTIONS`, `Sec-Fetch-Site: cross-site`) with `HTTP 403` so external websites cannot trigger fake local notifications.
 - **Bounded Disk Caches:** Synced lyrics and HD album art caches auto-prune (`max 160` entries) under `%APPDATA%\NotchFlow`.
 

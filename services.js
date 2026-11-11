@@ -60,41 +60,64 @@ function pruneCacheDir(cacheDir, maxFiles = 160) {
 
 function bmkgDescToIcon(desc) {
   const s = String(desc || '').toLowerCase();
-  if (s.includes('petir') || s.includes('badai')) return 'storm';
-  if (s.includes('hujan lebat') || s.includes('hujan deras')) return 'rain-heavy';
-  if (s.includes('hujan') || s.includes('gerimis')) return 'rain';
-  if (s.includes('kabut') || s.includes('asap') || s.includes('udara')) return 'fog';
-  if (s.includes('cerah berawan')) return 'sun-cloud';
-  if (s.includes('cerah')) return 'sun';
+  if (s.includes('petir') || s.includes('badai') || s.includes('thunder') || s.includes('storm')) return 'storm';
+  if (s.includes('hujan lebat') || s.includes('hujan deras') || s.includes('heavy rain') || s.includes('heavy shower')) return 'rain-heavy';
+  if (s.includes('hujan') || s.includes('gerimis') || s.includes('rain') || s.includes('drizzle') || s.includes('shower')) return 'rain';
+  if (s.includes('kabut') || s.includes('asap') || s.includes('udara') || s.includes('fog') || s.includes('mist') || s.includes('haze')) return 'fog';
+  if (s.includes('cerah berawan') || s.includes('partly cloudy') || s.includes('mostly clear')) return 'sun-cloud';
+  if (s.includes('cerah') || s.includes('clear') || s.includes('sunny')) return 'sun';
   return 'cloud';
 }
 
+function translateBmkgDesc(desc) {
+  const raw = String(desc || '').trim();
+  const s = raw.toLowerCase();
+  if (!s) return 'Cloudy';
+  if (s.includes('petir') || s.includes('badai')) return 'Thunderstorm';
+  if (s.includes('sangat lebat') || s.includes('hujan lebat') || s.includes('hujan deras')) return 'Heavy Rain';
+  if (s.includes('hujan sedang')) return 'Moderate Rain';
+  if (s.includes('hujan ringan')) return 'Light Rain';
+  if (s.includes('hujan lokal')) return 'Showers';
+  if (s.includes('hujan')) return 'Rain';
+  if (s.includes('gerimis')) return 'Drizzle';
+  if (s.includes('cerah berawan')) return 'Partly Cloudy';
+  if (s.includes('cerah')) return 'Clear';
+  if (s.includes('berawan tebal') || s.includes('mendung')) return 'Overcast';
+  if (s.includes('berawan')) return 'Cloudy';
+  if (s.includes('kabut') || s.includes('asap') || s.includes('udara kabur')) return 'Foggy';
+  return raw;
+}
+
 const WMO_MAP = {
-  0: ['Cerah', 'sun'],
-  1: ['Umumnya Cerah', 'sun-cloud'],
-  2: ['Berawan Sebagian', 'cloud-sun'],
-  3: ['Mendung', 'cloud'],
-  45: ['Berkabut', 'fog'],
-  48: ['Kabut Tipis', 'fog'],
-  51: ['Gerimis Ringan', 'drizzle'],
-  53: ['Gerimis', 'drizzle'],
-  55: ['Gerimis Lebat', 'drizzle'],
-  61: ['Hujan Ringan', 'rain'],
-  63: ['Hujan Sedang', 'rain'],
-  65: ['Hujan Lebat', 'rain-heavy'],
-  80: ['Hujan Lokal Ringan', 'rain'],
-  81: ['Hujan Lokal', 'rain'],
-  82: ['Hujan Deras', 'rain-heavy'],
-  95: ['Badai Petir', 'storm'],
-  96: ['Badai + Hujan Es', 'storm'],
-  99: ['Badai Petir Kuat', 'storm']
+  0: ['Clear', 'sun'],
+  1: ['Mostly Clear', 'sun-cloud'],
+  2: ['Partly Cloudy', 'cloud-sun'],
+  3: ['Overcast', 'cloud'],
+  45: ['Foggy', 'fog'],
+  48: ['Mist', 'fog'],
+  51: ['Light Drizzle', 'drizzle'],
+  53: ['Drizzle', 'drizzle'],
+  55: ['Heavy Drizzle', 'drizzle'],
+  61: ['Light Rain', 'rain'],
+  63: ['Moderate Rain', 'rain'],
+  65: ['Heavy Rain', 'rain-heavy'],
+  80: ['Light Showers', 'rain'],
+  81: ['Showers', 'rain'],
+  82: ['Heavy Showers', 'rain-heavy'],
+  95: ['Thunderstorm', 'storm'],
+  96: ['Hailstorm', 'storm'],
+  99: ['Severe Storm', 'storm']
 };
+
+function normSym(s) {
+  return String(s || '').replace(/\$/g, 's');
+}
 
 function detectTempoVariant(rawText) {
   const s = String(rawText || '').toLowerCase();
   if (/\b(?:slowed|reverb|slow\s*version|0\.[6-9]\d?x)\b/i.test(s)) return 'slowed';
   if (/\b(?:sped\s*up|speed\s*up|nightcore|1\.[1-4]\d?x)\b/i.test(s)) return 'spedup';
-  if (/\b(?:live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|version|ver\.|recording|set|fest|festival|tour)|live\b|fancam|unplugged|acoustic\s+(?:cover|version|session|live)|cover\s+(?:by|oleh)|unofficial\s+live)\b/i.test(s)) return 'live';
+  if (/\b(?:live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|version|ver\.|recording|set|fest|festival|tour)|live\b|fancam|unplugged|tiny\s*desk|colors\s*show|live\s*lounge|vevo\s*ctrl|acoustic\s+(?:cover|version|session|live)|cover\s+(?:by|oleh)|unofficial\s+live)\b/i.test(s)) return 'live';
   if (/\b(?:dj\s+|remix|bootleg|jedag\s*jedug|full\s*bass|bass\s*boost(?:ed)?|mashup|koplo)\b/i.test(s)) return 'remix';
   return null;
 }
@@ -103,9 +126,9 @@ function stripRemixNoise(str) {
   return String(str || '')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, ' ')
     .replace(/\.(mp3|flac|wav|m4a|ogg|opus|mp4|mkv|webm)$/i, '')
-    .replace(/\s*[\(\[\{][^)\]}]*(?:official|music\s*video|lyric|lirik|visualizer|mv|hd|hq|4k|8k|live|concert|konser|festival|fest\b|tour|stage|session|acoustic|akustik|unplugged|fancam|recorded|remaster|feat\.|ft\.|prod\.|slowed|reverb|sped\s*up|speed\s*up|nightcore|remix|bootleg|jedag|bass|tiktok|viral|cover|mix|edit|karaoke|instrumental|8d|audio|sub\s*indo|terjemahan)[^)\]}]*[\)\]\}]/gi, ' ')
+    .replace(/\s*[\(\[\{][^)\]}]*(?:official|music\s*video|lyric|lirik|visualizer|mv|hd|hq|4k|8k|live|concert|konser|festival|fest\b|tour|stage|session|acoustic|akustik|unplugged|fancam|recorded|remaster|with\s+[^)\]}]+|feat\.|ft\.|featuring|prod\.|explicit|clean|colors\s*show|tiny\s*desk|slowed|reverb|sped\s*up|speed\s*up|nightcore|remix|bootleg|jedag|bass|tiktok|viral|cover|mix|edit|karaoke|instrumental|8d|audio|sub\s*indo|terjemahan)[^)\]}]*[\)\]\}]/gi, ' ')
     .replace(/\s*(?:\/\/|\||#|•|〜|~).*$/g, '')
-    .replace(/\s+(?:live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|akustik|version|ver\.|recording|set|fest|festival|tour)\b.*|@\s*[\w\s.&-]+$|acoustic\s+(?:cover|version|session|live)\b.*|cover\s+(?:by|oleh)\s+.*|recorded\s+(?:at|live)\s+.*|fancam\b.*|unofficial\b.*)$/i, '')
+    .replace(/\s+(?:(?:ft\.?|feat\.?|featuring)\s+.*|with\s+(?:the\s+|a\s+)?[A-Z0-9$][\w$.&-]*.*|live\s+(?:at|in|on|from|@|stage|concert|konser|performance|perform|session|studio|acoustic|akustik|version|ver\.|recording|set|fest|festival|tour)\b.*|@\s*[\w\s.&-]+$|acoustic\s+(?:cover|version|session|live)\b.*|cover\s+(?:by|oleh)\s+.*|recorded\s+(?:at|live)\s+.*|fancam\b.*|unofficial\b.*)$/i, '')
     .replace(/\s+(?:live|fancam|cover|unplugged)$/i, '')
     .replace(/\b(?:slowed\s*(?:&|\+|and|with)?\s*reverb|slowed|reverb|sped\s*up|speed\s*up|nightcore|jedag\s*jedug|full\s*bass|bass\s*boost(?:ed)?|tiktok\s*viral|viral\s*tiktok|remix|bootleg|lirik\s*terjemahan|lirik\s*lagu|lyric\s*video|video\s*lirik|official\s*(?:music\s*)?(?:video|audio|live)|music\s*video|full\s*album|8d\s*audio)\b/gi, ' ')
     .replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, '')
@@ -118,25 +141,33 @@ function cleanTrackInfo(rawTitle, rawArtist) {
   let artist = (rawArtist || '').replace(/\s*-\s*Topic$/i, '').trim();
   const tempoKind = detectTempoVariant(`${rawTitle || ''} ${rawArtist || ''}`);
 
-  const junkRe = /\s*[\(\[\{]\s*(?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer)|lyrics?|lirik|mv|hd|hq|4k|8k|live(?:\s+(?:at|in|on|from|@).*)?|concert.*|konser.*|fancam.*|unplugged.*|acoustic.*|remastered.*|feat\..*|ft\..*|prod\..*|slowed.*|sped\s*up.*|nightcore.*|remix.*)\s*[\)\]\}]/gi;
+  const junkRe = /\s*[\(\[\{]\s*(?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer)|lyrics?|lirik|mv|hd|hq|4k|8k|live(?:\s+(?:at|in|on|from|@).*)?|concert.*|konser.*|fancam.*|unplugged.*|tiny\s*desk.*|colors\s*show.*|acoustic.*|remastered.*|with\s+[^)\]}]+|feat\..*|ft\..*|featuring.*|prod\..*|explicit|clean|slowed.*|sped\s*up.*|nightcore.*|remix.*)\s*[\)\]\}]/gi;
   title = title.replace(junkRe, '').replace(/\s*(?:\/\/|\|)\s*.*$/, '').trim();
 
   let altSwapped = null;
+  const foldAlnum = (s) => normSym(s).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
   // Handle "Artist - Song Title" or "Song Title - Artist" common on YouTube / GSMTC
   const dashMatch = /\s+[-–—]\s+/.exec(title);
   if (dashMatch && dashMatch.index > 0 && dashMatch.index + dashMatch[0].length < title.length) {
     const dashIdx = dashMatch.index;
     const left = title.slice(0, dashIdx).trim();
     const right = title.slice(dashIdx + dashMatch[0].length).trim();
-    const artistLow = artist.toLowerCase();
+    const artistNoSuffix = artist.replace(/\s*(?:VEVO|Official|Channel)$/i, '').trim();
+    const artistFold = foldAlnum(artistNoSuffix);
+    const leftFold = foldAlnum(left);
+    const rightFold = foldAlnum(right);
+    const artistLow = artistNoSuffix.toLowerCase();
     const leftLow = left.toLowerCase();
     const rightLow = right.toLowerCase();
-    const isGenericArtist = !artist || /youtube|chrome|msedge|brave|opera|firefox|vlc|browser|music\s*channel|official|vibes|records|galau|santai|konser|concert|live|fancam|akustik|acoustic|corner|fest|stage|media|musik/i.test(artistLow);
+    const isGenericArtist = !artist || /youtube|chrome|msedge|brave|opera|firefox|vlc|browser|music\s*channel|official|vibes|records|galau|santai|konser|concert|live|fancam|akustik|acoustic|corner|fest|stage|media|musik|colors|a\s*colors\s*show|tiny\s*desk|npr\s*music|genius|lyrical\s*lemonade|worldstar|88rising|vevo|bbc\s*radio|capital\s*fm|kexp|triple\s*j|boiler\s*room|session|sessions|entertainment|studio|rap\s*nation|trap\s*nation|majestic\s*casual|hip[\s-]?hop|r&b/i.test(artistLow);
 
-    if (artistLow && (rightLow.includes(artistLow) || artistLow.includes(rightLow)) && !leftLow.includes(artistLow)) {
+    const matchesRight = artistFold.length >= 2 && (rightFold.includes(artistFold) || artistFold.includes(rightFold)) && !leftFold.includes(artistFold);
+    const matchesLeft = artistFold.length >= 2 && (leftFold.includes(artistFold) || artistFold.includes(leftFold));
+
+    if (matchesRight || (artistLow && (rightLow.includes(artistLow) || artistLow.includes(rightLow)) && !leftLow.includes(artistLow))) {
       title = left;
       altSwapped = { title: right, artist: left };
-    } else if (artistLow && (leftLow.includes(artistLow) || artistLow.includes(leftLow))) {
+    } else if (matchesLeft || (artistLow && (leftLow.includes(artistLow) || artistLow.includes(leftLow)))) {
       artist = left;
       title = right;
       altSwapped = { title: left, artist: right };
@@ -152,7 +183,8 @@ function cleanTrackInfo(rawTitle, rawArtist) {
   artist = artist.replace(/\s*(?:VEVO|Official|Channel)$/i, '').trim();
   const baseTitle = stripRemixNoise(title) || title;
   const baseArtist = (/^(?:dj\s+|youtube|chrome|edge|brave|music|lyrics)/i.test(artist) ? '' : stripRemixNoise(artist)) || artist;
-  return { title, artist, baseTitle, baseArtist, tempoKind, altSwapped };
+  const primaryArtist = String(baseArtist || '').split(/\s*(?:,|&|\bx\b|\bft\.?\b|\bfeat\.?\b|\bfeaturing\b|\bwith\b)\s*/i)[0].trim();
+  return { title, artist, baseTitle, baseArtist, primaryArtist, tempoKind, altSwapped };
 }
 
 function isLrcCreditOrTitleEcho(text, tSec, titleHint, artistHint) {
@@ -258,8 +290,8 @@ async function fetchText(url, timeoutMs = 8000) {
 }
 
 function titleSim(a, b) {
-  const cleanTokens = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
-  const collapse = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const cleanTokens = (s) => normSym(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+  const collapse = (s) => normSym(s).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
   const ca = collapse(a);
   const cb = collapse(b);
   if (!ca || !cb) return 0;
@@ -273,6 +305,49 @@ function titleSim(a, b) {
   let inter = 0;
   for (const t of sa) if (sb.has(t)) inter++;
   return inter / Math.max(sa.size, sb.size);
+}
+
+function evaluateLrcQuality(syncedLyrics, durationSec) {
+  if (!syncedLyrics || typeof syncedLyrics !== 'string') return -100;
+  const rowRe = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+  let vocalCount = 0;
+  let instrCount = 0;
+  let firstTime = Infinity;
+  let lastTime = -1;
+
+  for (const rawLine of syncedLyrics.split(/\r?\n/)) {
+    rowRe.lastIndex = 0;
+    let m;
+    const times = [];
+    while ((m = rowRe.exec(rawLine)) !== null) {
+      const t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + parseInt((m[3] || '0').padEnd(3, '0').slice(0, 3), 10) / 1000;
+      times.push(t);
+    }
+    if (times.length === 0) continue;
+    const text = rawLine.replace(/\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/g, '').replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, '').trim();
+    if (!text || isInstrumentalCue(text)) {
+      instrCount++;
+      continue;
+    }
+    vocalCount++;
+    for (const t of times) {
+      if (t < firstTime) firstTime = t;
+      if (t > lastTime) lastTime = t;
+    }
+  }
+
+  let adj = 0;
+  if (vocalCount < 8) adj -= 65;
+  else if (vocalCount >= 20) adj += 12;
+  else if (vocalCount >= 12) adj += 6;
+
+  if (instrCount > 0 && instrCount / Math.max(1, vocalCount + instrCount) > 0.6) adj -= 50;
+  if (durationSec > 35 && vocalCount >= 5) {
+    if (firstTime > durationSec * 0.45 || lastTime < durationSec * 0.35) {
+      adj -= 45;
+    }
+  }
+  return adj;
 }
 
 async function resolveCanonicalViaItunes(artist, title) {
@@ -311,68 +386,87 @@ async function fetchKugouLyrics(artist, title, durationSec) {
   const query = `${artist || ''} ${title || ''}`.trim();
   if (!query) return null;
   try {
-    const searchUrl = `https://mobileservice.kugou.com/api/v3/search/song?format=json&keyword=${encodeURIComponent(query)}&page=1&pagesize=4`;
+    const searchUrl = `https://mobileservice.kugou.com/api/v3/search/song?format=json&keyword=${encodeURIComponent(query)}&page=1&pagesize=5`;
     const searchRes = await fetchJson(searchUrl, 4500);
     const items = (searchRes && searchRes.data && searchRes.data.info) || [];
-    let bestSong = null;
-    let bestScore = -1;
+    const scoredSongs = [];
     for (const s of items) {
       if (!s || !s.hash) continue;
       const tSim = titleSim(title, s.songname);
       if (tSim < 0.50) continue;
       const aSim = artist ? titleSim(artist, s.singername) : 0.2;
-      const sc = tSim * 65 + aSim * 35;
-      if (sc > bestScore) {
-        bestScore = sc;
-        bestSong = s;
+      let sc = tSim * 65 + aSim * 35;
+      if (durationSec > 10 && s.duration) {
+        const diff = Math.abs(Number(s.duration) - durationSec);
+        sc -= Math.min(35, diff * 0.6);
       }
+      scoredSongs.push({ song: s, sc });
     }
-    if (!bestSong) return null;
+    scoredSongs.sort((a, b) => b.sc - a.sc);
+    if (scoredSongs.length === 0) return null;
 
-    const kDur = Number(bestSong.duration || durationSec || 0) * 1000;
-    const candRes = await fetchJson(
-      `https://krcs.kugou.com/search?ver=1&man=yes&client=mobi&keyword=&duration=${Math.round(kDur)}&hash=${encodeURIComponent(bestSong.hash)}`,
-      4500
-    );
-    const cand = candRes && Array.isArray(candRes.candidates) ? candRes.candidates[0] : null;
-    if (!cand || !cand.id || !cand.accesskey) return null;
+    for (const { song: bestSong } of scoredSongs.slice(0, 2)) {
+      const kDur = Number(bestSong.duration || durationSec || 0) * 1000;
+      const candRes = await fetchJson(
+        `https://krcs.kugou.com/search?ver=1&man=yes&client=mobi&keyword=&duration=${Math.round(kDur)}&hash=${encodeURIComponent(bestSong.hash)}`,
+        4500
+      );
+      const cands = candRes && Array.isArray(candRes.candidates) ? candRes.candidates : [];
+      if (cands.length === 0) continue;
+      let cand = cands[0];
+      if (durationSec > 10 && cands.length > 1) {
+        let bestCandScore = -1e9;
+        for (const item of cands.slice(0, 4)) {
+          const itemDur = Number(item.duration || 0) / 1000;
+          const diff = itemDur > 0 ? Math.abs(itemDur - durationSec) : 20;
+          const cScore = Number(item.score || 0) - diff * 1.5;
+          if (cScore > bestCandScore) {
+            bestCandScore = cScore;
+            cand = item;
+          }
+        }
+      }
+      if (!cand || !cand.id || !cand.accesskey) continue;
 
-    const dlRes = await fetchJson(
-      `https://lyrics.kugou.com/download?ver=1&client=pc&id=${encodeURIComponent(cand.id)}&accesskey=${encodeURIComponent(cand.accesskey)}&fmt=lrc&charset=utf8`,
-      4500
-    );
-    if (!dlRes || !dlRes.content) return null;
-    const lrcText = Buffer.from(dlRes.content, 'base64').toString('utf8');
-    if (!/\[\d{1,3}:\d{2}/.test(lrcText)) return null;
-    return {
-      syncedLyrics: lrcText,
-      plainLyrics: '',
-      trackName: bestSong.songname || title,
-      artistName: bestSong.singername || artist,
-      duration: Number(bestSong.duration || 0)
-    };
+      const dlRes = await fetchJson(
+        `https://lyrics.kugou.com/download?ver=1&client=pc&id=${encodeURIComponent(cand.id)}&accesskey=${encodeURIComponent(cand.accesskey)}&fmt=lrc&charset=utf8`,
+        4500
+      );
+      if (!dlRes || !dlRes.content) continue;
+      const lrcText = Buffer.from(dlRes.content, 'base64').toString('utf8');
+      if (!/\[\d{1,3}:\d{2}/.test(lrcText)) continue;
+      return {
+        syncedLyrics: lrcText,
+        plainLyrics: '',
+        trackName: bestSong.songname || title,
+        artistName: bestSong.singername || artist,
+        duration: Number(bestSong.duration || 0)
+      };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
 async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
-  const { title, artist, baseTitle, baseArtist, tempoKind, altSwapped } = cleanTrackInfo(rawTitle, rawArtist);
+  const { title, artist, baseTitle, baseArtist, primaryArtist, tempoKind, altSwapped } = cleanTrackInfo(rawTitle, rawArtist);
   const queryTitle = baseTitle || title;
   const queryArtist = baseArtist || artist;
   const isLiveTrack = tempoKind === 'live';
   const isLongMultiSongTitle = /\b(?:full\s*(?:concert|konser|album|set|show|live\s*set)|setlist|medley|non[\s-]?stop|mega[\s-]?mix|mixtape|compilations?|kompilasi|\d+\s*(?:jam|hour|hr)s?|playlist)\b/i.test(`${rawTitle || ''} ${album || ''}`);
   if (Number(durationSec) > 900 || isLongMultiSongTitle) {
-    return { cacheV: 4, found: false, synced: false, lines: [], plain: [], isMultiSongLongVideo: true, tempoKind, isLiveTrack, title, artist };
+    return { cacheV: 5, found: false, synced: false, lines: [], plain: [], isMultiSongLongVideo: true, tempoKind, isLiveTrack, title, artist };
   }
-  if (!queryTitle) return { cacheV: 4, found: false, synced: false, lines: [], plain: [], tempoKind, isLiveTrack, title, artist };
+  if (!queryTitle) return { cacheV: 5, found: false, synced: false, lines: [], plain: [], tempoKind, isLiveTrack, title, artist };
 
-  const cacheKey = crypto.createHash('sha1').update(`v4|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}`).digest('hex');
+  const durBucket = durationSec > 0 ? Math.round(durationSec / 10) : 0;
+  const cacheKey = crypto.createHash('sha1').update(`v5|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}|${durBucket}`).digest('hex');
   const cacheFile = path.join(cacheDir, `${cacheKey}.json`);
   try {
     if (fs.existsSync(cacheFile)) {
       const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-      if (cached && cached.cacheV === 4 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
+      if (cached && cached.cacheV === 5 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
         return {
           ...cached,
           title: cached.trackName || queryTitle,
@@ -397,8 +491,13 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
       const ca = String(c.artistName || '');
       const tSim = titleSim(tgtTitle, ct);
       if (tSim < 0.42) continue;
-      const aSim = tgtArtist ? titleSim(tgtArtist, ca) : 0.25;
+      const fullASim = tgtArtist ? titleSim(tgtArtist, ca) : 0.25;
+      const priASim = primaryArtist && tgtArtist !== primaryArtist ? titleSim(primaryArtist, ca) : 0;
+      const aSim = Math.max(fullASim, priASim * 0.92);
       let score = (c.syncedLyrics ? 120 : 15) + tSim * 65 + aSim * 45;
+      if (c.syncedLyrics) {
+        score += evaluateLrcQuality(c.syncedLyrics, Number(c.duration || durationSec || 0));
+      }
       if (durationSec > 10 && c.duration) {
         const cDur = Number(c.duration);
         const diff = Math.abs(cDur - durationSec);
@@ -409,7 +508,8 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
         } else if (tempoKind === 'live' || tempoKind === 'remix') {
           score -= Math.min(25, diff * 0.15);
         } else {
-          score -= Math.min(45, diff * 0.8);
+          if (diff <= 4) score += 14;
+          else score -= Math.min(45, diff * 0.8);
         }
       }
       if (score > bestScore) {
@@ -423,11 +523,14 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   let picked = null;
   if (!tempoKind) {
     try {
-      const params = new URLSearchParams({ track_name: queryTitle, artist_name: queryArtist || queryTitle });
+      const params = new URLSearchParams({ track_name: queryTitle, artist_name: primaryArtist || queryArtist || queryTitle });
       if (album) params.set('album_name', album);
       if (durationSec > 10) params.set('duration', String(Math.round(durationSec)));
       const exactHit = await fetchJson(`https://lrclib.net/api/get?${params.toString()}`, 5000);
-      if (exactHit && (exactHit.syncedLyrics || exactHit.plainLyrics) && titleSim(queryTitle, exactHit.trackName) >= 0.42) {
+      if (exactHit && exactHit.syncedLyrics && titleSim(queryTitle, exactHit.trackName) >= 0.42 &&
+          evaluateLrcQuality(exactHit.syncedLyrics, Number(exactHit.duration || durationSec || 0)) >= 0) {
+        picked = exactHit;
+      } else if (exactHit && exactHit.plainLyrics && titleSim(queryTitle, exactHit.trackName) >= 0.42) {
         picked = exactHit;
       }
     } catch {}
@@ -440,6 +543,13 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
       url: `https://lrclib.net/api/search?q=${encodeURIComponent(`${queryArtist} ${queryTitle}`)}`,
       tgtTitle: queryTitle,
       tgtArtist: queryArtist
+    });
+  }
+  if (primaryArtist && primaryArtist.toLowerCase() !== queryArtist.toLowerCase()) {
+    lrclibQueries.push({
+      url: `https://lrclib.net/api/search?track_name=${encodeURIComponent(noDjTitle || queryTitle)}&artist_name=${encodeURIComponent(primaryArtist)}`,
+      tgtTitle: noDjTitle || queryTitle,
+      tgtArtist: primaryArtist
     });
   }
   lrclibQueries.push({
@@ -459,31 +569,46 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
     }
   }
 
-  for (const q of lrclibQueries.slice(0, 3)) {
-    if (picked && picked.syncedLyrics && titleSim(q.tgtTitle, picked.trackName) >= 0.72) break;
+  const isConfidentSync = (cand, tgtT, tgtA) => {
+    if (!cand || !cand.syncedLyrics) return false;
+    if (titleSim(tgtT, cand.trackName) < 0.72) return false;
+    if (tgtA && titleSim(tgtA, cand.artistName) < 0.55 && (!primaryArtist || titleSim(primaryArtist, cand.artistName) < 0.55)) return false;
+    if (evaluateLrcQuality(cand.syncedLyrics, Number(cand.duration || durationSec || 0)) < 0) return false;
+    if (!tempoKind && durationSec > 10 && cand.duration && Math.abs(Number(cand.duration) - durationSec) > 8) return false;
+    return true;
+  };
+
+  for (const q of lrclibQueries.slice(0, 4)) {
+    if (isConfidentSync(picked, q.tgtTitle, q.tgtArtist)) break;
     try {
       const list = await fetchJson(q.url, 5500);
       const cand = pickBest(list, q.tgtTitle, q.tgtArtist);
-      if (cand && (!picked || (cand.syncedLyrics && !picked.syncedLyrics))) {
-        picked = cand;
+      if (cand) {
+        if (!picked || (cand.syncedLyrics && !picked.syncedLyrics)) {
+          picked = cand;
+        } else if (cand.syncedLyrics && picked.syncedLyrics) {
+          const bestPair = pickBest([picked, cand], q.tgtTitle, q.tgtArtist);
+          if (bestPair) picked = bestPair;
+        }
       }
     } catch {}
   }
 
   // Fallback 2: Canonical spelling lookup via iTunes -> LRCLIB
-  if (!picked || !picked.syncedLyrics) {
-    const canon = await resolveCanonicalViaItunes(queryArtist, noDjTitle || queryTitle);
+  if (!picked || !picked.syncedLyrics || evaluateLrcQuality(picked.syncedLyrics, Number(picked.duration || durationSec || 0)) < 0) {
+    const canon = await resolveCanonicalViaItunes(primaryArtist || queryArtist, noDjTitle || queryTitle);
     if (canon && canon.title) {
       for (const u of [
         `https://lrclib.net/api/search?q=${encodeURIComponent(`${canon.artist} ${canon.title}`)}`,
         `https://lrclib.net/api/search?track_name=${encodeURIComponent(canon.title)}`
       ]) {
-        if (picked && picked.syncedLyrics) break;
+        if (isConfidentSync(picked, canon.title, canon.artist)) break;
         try {
           const list = await fetchJson(u, 5500);
           const cand = pickBest(list, canon.title, canon.artist);
-          if (cand && (!picked || (cand.syncedLyrics && !picked.syncedLyrics))) {
-            picked = cand;
+          if (cand) {
+            const bestPair = picked ? pickBest([picked, cand], canon.title, canon.artist) : cand;
+            if (bestPair) picked = bestPair;
           }
         } catch {}
       }
@@ -491,10 +616,14 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   }
 
   // Fallback 3: Similarity-guarded Kugou LRC database
-  if (!picked || !picked.syncedLyrics) {
-    const kugou = await fetchKugouLyrics(queryArtist, noDjTitle || queryTitle, durationSec);
+  if (!picked || !picked.syncedLyrics || evaluateLrcQuality(picked.syncedLyrics, Number(picked.duration || durationSec || 0)) < 0) {
+    const kugou = await fetchKugouLyrics(primaryArtist || queryArtist, noDjTitle || queryTitle, durationSec);
     if (kugou && kugou.syncedLyrics) {
-      picked = kugou;
+      const kQual = evaluateLrcQuality(kugou.syncedLyrics, Number(kugou.duration || durationSec || 0));
+      const pQual = picked && picked.syncedLyrics ? evaluateLrcQuality(picked.syncedLyrics, Number(picked.duration || durationSec || 0)) : -999;
+      if (!picked || !picked.syncedLyrics || kQual > pQual) {
+        picked = kugou;
+      }
     }
   }
 
@@ -503,7 +632,7 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   if (!picked && queryArtist && (noDjTitle || queryTitle)) {
     try {
       const ovh = await fetchJson(
-        `https://api.lyrics.ovh/v1/${encodeURIComponent(queryArtist)}/${encodeURIComponent(noDjTitle || queryTitle)}`,
+        `https://api.lyrics.ovh/v1/${encodeURIComponent(primaryArtist || queryArtist)}/${encodeURIComponent(noDjTitle || queryTitle)}`,
         3800
       );
       if (ovh && typeof ovh.lyrics === 'string' && ovh.lyrics.trim()) {
@@ -519,7 +648,7 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
     ? picked.plainLyrics.split(/\r?\n/).filter(Boolean)
     : plainFallback;
   const result = {
-    cacheV: 4,
+    cacheV: 5,
     found: lines.length > 0 || plain.length > 0,
     synced: lines.length > 0,
     lines,
@@ -598,21 +727,23 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
         let rainAlert = null;
         for (const s of sampleSlots) {
           const hhmm = String(s.local_datetime || '').slice(11, 16);
-          const desc = String(s.weather_desc || 'Berawan').trim();
+          const rawDesc = String(s.weather_desc || 'Berawan').trim();
+          const desc = translateBmkgDesc(rawDesc);
           const temp = Math.round(Number(s.t ?? 24));
-          const icon = bmkgDescToIcon(desc);
+          const icon = bmkgDescToIcon(rawDesc);
           if (desc.toLowerCase() !== prevDesc.toLowerCase()) {
             transitions.push({ time: hhmm, label: desc, temp, icon });
             prevDesc = desc;
           }
-          if (!rainAlert && /hujan|petir|badai/i.test(desc)) {
+          if (!rainAlert && /hujan|petir|badai|rain|storm|thunder/i.test(`${rawDesc} ${desc}`)) {
             rainAlert = { time: hhmm, desc };
           }
         }
 
+        const curLabel = translateBmkgDesc(curSlot.weather_desc || 'Berawan');
         const transitionSummary = transitions.length > 1
           ? transitions.slice(0, 4).map(t => `${t.time} ${t.label}`).join(' → ')
-          : `Stabil ${curSlot.weather_desc || 'Berawan'} sepanjang hari`;
+          : `Steady ${curLabel} today`;
 
         return {
           source: 'BMKG',
@@ -622,7 +753,7 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
           feelsLike: Math.round(Number(curSlot.t ?? 24)),
           humidity: Number(curSlot.hu ?? 75),
           wind: Math.round(Number(curSlot.ws ?? 0)),
-          label: String(curSlot.weather_desc || 'Berawan'),
+          label: curLabel,
           icon: bmkgDescToIcon(curSlot.weather_desc),
           min: minTemp,
           max: maxTemp,
@@ -640,7 +771,7 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
   const d = await fetchJson(url, 8000);
   const cur = d.current || {};
   const code = cur.weather_code ?? 0;
-  const [label, icon] = WMO_MAP[code] || ['Berawan', 'cloud'];
+  const [label, icon] = WMO_MAP[code] || ['Cloudy', 'cloud'];
 
   const nowMs = Date.now();
   const times = (d.hourly && d.hourly.time) || [];
@@ -656,12 +787,12 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
     if (tMs >= nowMs - 1800000 && tMs <= nowMs + 24 * 3600000) {
       const hhmm = times[i].slice(11, 16);
       const prob = probs[i] ?? 0;
-      const [hLabel, hIcon] = WMO_MAP[codes[i] ?? 0] || ['Berawan', 'cloud'];
+      const [hLabel, hIcon] = WMO_MAP[codes[i] ?? 0] || ['Cloudy', 'cloud'];
       if (hLabel !== prevLbl) {
         transitions.push({ time: hhmm, label: hLabel, temp: Math.round(temps[i] ?? cur.temperature_2m ?? 0), icon: hIcon });
         prevLbl = hLabel;
       }
-      if (!rainAlert && (prob >= 50 || /hujan|badai/i.test(hLabel))) {
+      if (!rainAlert && (prob >= 50 || /rain|drizzle|shower|storm/i.test(hLabel))) {
         rainAlert = { time: hhmm, prob, desc: hLabel };
       }
     }
@@ -682,7 +813,7 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
     transitions: transitions.slice(0, 5),
     transitionSummary: transitions.length > 1
       ? transitions.slice(0, 4).map(t => `${t.time} ${t.label}`).join(' → ')
-      : `Stabil ${label} hari ini`,
+      : `Steady ${label} today`,
     updatedAt: Date.now()
   };
 }
@@ -712,17 +843,17 @@ async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia') {
       if (j && j.subuh && j.dzuhur) {
         return {
           source: 'Kemenag RI',
-          city: (kRes.data.lokasi || city).replace(/^KOTA\s+/i, 'Kota ').replace(/^KAB\.\s+/i, 'Kab. '),
+          city: (kRes.data.lokasi || city).replace(/^KOTA\s+/i, '').replace(/^KAB\.\s+/i, ''),
           dateKey,
           tanggal: j.tanggal || `${dd}/${mm}/${yyyy}`,
           imsak: j.imsak || '',
           terbit: j.terbit || '',
           timings: [
-            { key: 'Subuh', time: j.subuh },
-            { key: 'Dzuhur', time: j.dzuhur },
-            { key: 'Ashar', time: j.ashar },
+            { key: 'Fajr', time: j.subuh },
+            { key: 'Dhuhr', time: j.dzuhur },
+            { key: 'Asr', time: j.ashar },
             { key: 'Maghrib', time: j.maghrib },
-            { key: 'Isya', time: j.isya }
+            { key: 'Isha', time: j.isya }
           ],
           updatedAt: Date.now()
         };
@@ -730,17 +861,17 @@ async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia') {
     }
   } catch {}
 
-  // Fallback: Aladhan Method 20 (Kemenag RI)
+  // Fallback: Aladhan Method 20
   const url = `https://api.aladhan.com/v1/timingsByCity/${dd}-${mm}-${yyyy}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=20`;
   const res = await fetchJson(url, 8000);
   const t = res && res.data && res.data.timings ? res.data.timings : {};
   const clean = (s) => (s || '').replace(/\s*\(.*\)/, '').trim();
   const list = [
-    { key: 'Subuh', time: clean(t.Fajr) },
-    { key: 'Dzuhur', time: clean(t.Dhuhr) },
-    { key: 'Ashar', time: clean(t.Asr) },
+    { key: 'Fajr', time: clean(t.Fajr) },
+    { key: 'Dhuhr', time: clean(t.Dhuhr) },
+    { key: 'Asr', time: clean(t.Asr) },
     { key: 'Maghrib', time: clean(t.Maghrib) },
-    { key: 'Isya', time: clean(t.Isha) }
+    { key: 'Isha', time: clean(t.Isha) }
   ].filter(x => /^\d{2}:\d{2}$/.test(x.time));
 
   return {
@@ -824,11 +955,11 @@ function expandRruleInstances(startDate, durationMs, rruleStr, exdatesSet, windo
 
 function inferTagAndColor(title) {
   const s = String(title || '').toLowerCase();
-  if (/^\[kuliah\]|kuliah|ta\b|skripsi|kampus|ujian|seminar/i.test(s)) return { tag: 'Kuliah', color: '#4986e7' };
-  if (/^\[pro|proyek|project|kantor|meeting|rapat|kerja|client|deadline/i.test(s)) return { tag: 'Profesional', color: '#16a765' };
-  if (/^\[sosial\]|nongkrong|bukber|reuni|komunitas/i.test(s)) return { tag: 'Sosial', color: '#fa573c' };
-  if (/^\[personal\]|gym|olahraga|dokter|pribadi/i.test(s)) return { tag: 'Personal', color: '#cd74e6' };
-  return { tag: 'Kalender', color: '#38bdf8' };
+  if (/^\[(kuliah|study)\]|kuliah|study|class|lecture|ta\b|skripsi|kampus|campus|ujian|exam|seminar/i.test(s)) return { tag: 'Study', color: '#4986e7' };
+  if (/^\[(pro|work)|proyek|project|kantor|office|meeting|rapat|kerja|work|client|deadline|sprint/i.test(s)) return { tag: 'Work', color: '#16a765' };
+  if (/^\[(sosial|social)\]|nongkrong|bukber|reuni|komunitas|social|dinner|party|hangout/i.test(s)) return { tag: 'Social', color: '#fa573c' };
+  if (/^\[personal\]|gym|olahraga|workout|dokter|doctor|pribadi|personal/i.test(s)) return { tag: 'Personal', color: '#cd74e6' };
+  return { tag: 'Calendar', color: '#38bdf8' };
 }
 
 function parseIcs(icsText) {
@@ -916,7 +1047,7 @@ function parseGcalItems(items, calMeta = {}) {
     mapped.push({
       id: `gcli_${it.id || startMs}`,
       title: rawTitle,
-      tag: it.tag || calMeta.tag || 'Kalender',
+      tag: it.tag || calMeta.tag || 'Calendar',
       color: it.color || calMeta.color || '#38bdf8',
       location: it.location || '',
       htmlLink: it.htmlLink || '',
@@ -1050,7 +1181,7 @@ async function fetchCalendarEvents(icsUrl, localEvents = [], gcalAccount = '', c
         remote.push(...parseIcs(r.value));
         gcalConnected = true;
       } else if (r.status === 'rejected' && !error) {
-        error = r.reason?.message || 'Gagal memuat iCal';
+        error = r.reason?.message || 'Failed to load iCal feed';
       }
     }
   }
@@ -1098,29 +1229,29 @@ async function assertPublicHttpsUrl(rawUrl) {
   try {
     parsed = new URL(String(rawUrl || '').trim());
   } catch {
-    throw new Error('URL tidak valid');
+    throw new Error('Invalid URL');
   }
   if (parsed.protocol !== 'https:') {
-    throw new Error('Hanya URL HTTPS publik yang diizinkan');
+    throw new Error('Only public HTTPS URLs are allowed');
   }
   if (parsed.username || parsed.password) {
-    throw new Error('Kredensial pada URL tidak diizinkan');
+    throw new Error('Credentials in URL are not allowed');
   }
   const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) {
-    throw new Error('Host lokal tidak diizinkan');
+    throw new Error('Local hosts are not allowed');
   }
   if (net.isIP(host)) {
-    if (isPrivateOrLocalIp(host)) throw new Error('IP lokal/privat tidak diizinkan');
+    if (isPrivateOrLocalIp(host)) throw new Error('Local/private IPs are not allowed');
     return parsed.toString();
   }
   try {
     const addrs = await dns.promises.lookup(host, { all: true });
     if (addrs.some(entry => isPrivateOrLocalIp(entry.address))) {
-      throw new Error('Domain mengarah ke IP lokal/privat');
+      throw new Error('Domain resolves to a local/private IP');
     }
   } catch (err) {
-    if (err && /lokal|privat/i.test(err.message)) throw err;
+    if (err && /local|private/i.test(err.message)) throw err;
   }
   return parsed.toString();
 }
@@ -1147,7 +1278,7 @@ async function fetchCustomFeed(feed) {
       const res = await fetch(safeUrl, {
         signal: controller.signal,
         redirect: 'error',
-        headers: { 'User-Agent': 'DynotchFlow/4.0 (Windows 11 Custom Dynamic Island)' }
+        headers: { 'User-Agent': 'DynotchFlow/1.0 (Windows 11 Dynamic Island)' }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       json = await res.json();
@@ -1156,7 +1287,7 @@ async function fetchCustomFeed(feed) {
     }
     const val = resolveJsonPath(json, feed.jsonPath || '');
     const formatted = typeof val === 'number'
-      ? (Number.isInteger(val) ? val.toLocaleString('id-ID') : val.toLocaleString('id-ID', { maximumFractionDigits: 2 }))
+      ? (Number.isInteger(val) ? val.toLocaleString('en-US') : val.toLocaleString('en-US', { maximumFractionDigits: 2 }))
       : String(val ?? '—');
     return {
       id: feed.id,
@@ -1218,7 +1349,7 @@ async function fetchAlbumArtHD(rawTitle, rawArtist, cacheDir) {
 }
 
 async function geocodeCity(cityName) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=id&format=json`;
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
   const res = await fetchJson(url, 6000);
   const first = res && res.results && res.results[0];
   if (!first) return null;

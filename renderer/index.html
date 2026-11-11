@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: blob: file:;" />
@@ -12,7 +12,7 @@
 <body>
   <div id="stage">
     <!-- Top Edge Hover Sensor for Auto-Hide to Top (Clean Screenshot Mode) -->
-    <div id="top-edge-sensor" class="top-edge-sensor" title="Sentuh tepi atas untuk menampilkan Dynamic Island"></div>
+    <div id="top-edge-sensor" class="top-edge-sensor" title="Hover top edge to show Dynamic Island"></div>
 
     <div id="notch-shell" class="state-idle" data-size="34">
       <!-- Concave macOS top bezel wings -->
@@ -47,12 +47,12 @@
           </span>
         </div>
 
-        <!-- Schedule Start / Transition / Adzan Dynamic Island Alert Banner -->
+        <!-- Schedule Start / Transition / Prayer Alert Banner -->
         <div id="pill-sched-alert" class="pill-sched-alert hidden">
           <div class="sched-alert-bar" id="sched-alert-bar"></div>
           <div class="sched-alert-body">
             <div class="sched-alert-top">
-              <span id="sched-alert-badge" class="sched-alert-badge">JADWAL DIMULAI</span>
+              <span id="sched-alert-badge" class="sched-alert-badge">STARTING NOW</span>
               <span id="sched-alert-time" class="sched-alert-time">19:20 – 21:00</span>
             </div>
             <div id="sched-alert-title" class="sched-alert-title">—</div>
@@ -63,7 +63,7 @@
         <div id="pill-media" class="pill-content hidden">
           <img id="pill-art" class="pill-art" alt="" />
           <div class="pill-lyric-wrap">
-            <div id="pill-lyric-track" class="pill-lyric-text">Memutar lagu...</div>
+            <div id="pill-lyric-track" class="pill-lyric-text">Playing...</div>
           </div>
           <div id="pill-eq" class="eq-bars" aria-hidden="true">
             <span></span><span></span><span></span><span></span>
@@ -84,32 +84,32 @@
         <!-- Header Tabs -->
         <div class="exp-header">
           <div class="tab-group" role="tablist">
-            <button class="tab-btn active" data-tab="music" title="Musik & Lirik">
-              <span class="tab-ico" data-ico="music"></span><span>Musik</span>
+            <button class="tab-btn active" data-tab="music" title="Music & Synced Lyrics">
+              <span class="tab-ico" data-ico="music"></span><span>Music</span>
             </button>
-            <button class="tab-btn" data-tab="calendar" title="Semua Kalender Google & Agenda Lokal">
-              <span class="tab-ico" data-ico="calendar"></span><span>Kalender</span>
+            <button class="tab-btn" data-tab="calendar" title="Google Calendar & Local Events">
+              <span class="tab-ico" data-ico="calendar"></span><span>Calendar</span>
             </button>
-            <button class="tab-btn" data-tab="weather" title="Cuaca BMKG & Jadwal Sholat Kemenag">
-              <span class="tab-ico" data-ico="sun"></span><span>Cuaca & Sholat</span>
+            <button class="tab-btn" data-tab="weather" title="Weather & Prayer Times">
+              <span class="tab-ico" data-ico="sun"></span><span>Weather</span>
             </button>
-            <button class="tab-btn" data-tab="shelf" title="Notch File & Text Shelf (Drag-In & Drag-Out)">
+            <button class="tab-btn" data-tab="shelf" title="Drop Shelf (Drag-In & Drag-Out)">
               <span class="tab-ico" data-ico="shelf"></span><span>Shelf</span>
               <span id="shelf-count" class="badge-count hidden">0</span>
             </button>
           </div>
           <div class="header-actions">
-            <button id="btn-vol-quick" class="icon-chip" title="Klik: Mute | Scroll: Atur Volume">
+            <button id="btn-vol-quick" class="icon-chip" title="Click: Mute | Scroll: Volume">
               <span id="hdr-vol-ico" class="svg-icon"></span>
               <span id="hdr-vol-txt">--%</span>
             </button>
-            <button id="btn-autohide-top" class="icon-btn" title="Auto-Hide ke Atas (Alt+H / Ctrl+Alt+H — Sembunyikan pill ke atas layar untuk Screenshot penuh, muncul saat kursor menyentuh tepi atas)">
+            <button id="btn-autohide-top" class="icon-btn" title="Auto-Hide Top (Alt+H — Hide pill to top edge for clean screenshots)">
               <span class="svg-icon" data-ico="autohide"></span>
             </button>
-            <button id="btn-pin" class="icon-btn" title="Pin panel tetap terbuka">
+            <button id="btn-pin" class="icon-btn" title="Pin panel open">
               <span class="svg-icon" data-ico="pin"></span>
             </button>
-            <button class="tab-btn icon-only-tab" data-tab="settings" title="Pengaturan">
+            <button class="tab-btn icon-only-tab" data-tab="settings" title="Settings">
               <span class="tab-ico" data-ico="settings"></span>
             </button>
           </div>
@@ -119,8 +119,8 @@
         <div class="tab-pane active" data-pane="music">
           <div id="music-empty" class="empty-state hidden">
             <div class="empty-ico" data-ico="music"></div>
-            <div>Belum ada lagu diputar</div>
-            <small>Putar Spotify, YouTube Music, Chrome/Edge, atau VLC — lirik otomatis tampil di pill atas.</small>
+            <div>No track playing</div>
+            <small>Play Spotify, YouTube Music, Chrome, Edge, or VLC — synced lyrics appear automatically.</small>
           </div>
           <div id="music-main" class="music-grid">
             <div class="music-left">
@@ -129,7 +129,7 @@
                 <div class="track-meta">
                   <div id="exp-title" class="track-title">—</div>
                   <div id="exp-artist" class="track-artist">—</div>
-                  <div id="exp-source" class="track-source">Media Windows</div>
+                  <div id="exp-source" class="track-source">Windows Media</div>
                 </div>
               </div>
               <div class="scrubber-wrap">
@@ -138,53 +138,53 @@
                 <span id="time-tot" class="time-txt">-0:00</span>
               </div>
               <div class="controls-row">
-                <button id="btn-prev" class="ctrl-btn" title="Sebelumnya"><span data-ico="prev"></span></button>
+                <button id="btn-prev" class="ctrl-btn" title="Previous"><span data-ico="prev"></span></button>
                 <button id="btn-play" class="ctrl-btn primary" title="Play / Pause"><span id="play-ico"></span></button>
-                <button id="btn-next" class="ctrl-btn" title="Berikutnya"><span data-ico="next"></span></button>
+                <button id="btn-next" class="ctrl-btn" title="Next"><span data-ico="next"></span></button>
               </div>
             </div>
             <div class="lyrics-pane" id="lyrics-pane">
-              <div id="lyrics-status" class="lyrics-status">Mencari lirik sinkron...</div>
+              <div id="lyrics-status" class="lyrics-status">Searching synced lyrics...</div>
               <div id="lyrics-list" class="lyrics-list"></div>
             </div>
           </div>
         </div>
 
-        <!-- TAB 2: DEDICATED MULTI-CALENDAR (NotchNook / Fantastical style) -->
+        <!-- TAB 2: DEDICATED MULTI-CALENDAR -->
         <div class="tab-pane" data-pane="calendar">
           <div class="cal-full-pane">
             <div class="cal-toolbar">
               <div class="cal-filters" id="cal-filters">
-                <button class="cal-filter-pill active" data-cal-filter="all">Semua</button>
-                <button class="cal-filter-pill" data-cal-filter="Kuliah"><span class="cat-dot" style="background:#4986e7"></span>Kuliah</button>
-                <button class="cal-filter-pill" data-cal-filter="Profesional"><span class="cat-dot" style="background:#16a765"></span>Pro</button>
-                <button class="cal-filter-pill" data-cal-filter="Sosial"><span class="cat-dot" style="background:#fa573c"></span>Sosial</button>
+                <button class="cal-filter-pill active" data-cal-filter="all">All</button>
+                <button class="cal-filter-pill" data-cal-filter="Study"><span class="cat-dot" style="background:#4986e7"></span>Study</button>
+                <button class="cal-filter-pill" data-cal-filter="Work"><span class="cat-dot" style="background:#16a765"></span>Work</button>
+                <button class="cal-filter-pill" data-cal-filter="Social"><span class="cat-dot" style="background:#fa573c"></span>Social</button>
                 <button class="cal-filter-pill" data-cal-filter="Personal"><span class="cat-dot" style="background:#cd74e6"></span>Personal</button>
               </div>
               <div class="ev-row">
-                <button id="btn-refresh-cal" class="sync-circle-btn" title="Sinkronkan ulang semua Google Calendar"><span class="svg-icon" data-ico="sync"></span></button>
-                <button id="btn-test-sched-notif" class="mini-btn subtle" title="Tes Notifikasi Pergantian Jadwal di Notch & Windows">Tes Notif</button>
-                <button id="btn-toggle-ev-form" class="mini-btn accent" title="Tambah jadwal cepat">+ Agenda</button>
+                <button id="btn-refresh-cal" class="sync-circle-btn" title="Sync all calendars"><span class="svg-icon" data-ico="sync"></span></button>
+                <button id="btn-test-sched-notif" class="mini-btn subtle" title="Test schedule banner & Windows toast">Test Alert</button>
+                <button id="btn-toggle-ev-form" class="mini-btn accent" title="Add quick event">+ Event</button>
               </div>
             </div>
 
             <div id="ev-form" class="ev-form hidden">
               <div class="ev-row">
-                <input id="ev-title-in" type="text" placeholder="Nama jadwal / kuliah / rapat..." />
-                <select id="ev-tag-in" class="mini-select" title="Kategori Agenda">
-                  <option value="Profesional">Pro</option>
-                  <option value="Kuliah">Kuliah</option>
-                  <option value="Sosial">Sosial</option>
+                <input id="ev-title-in" type="text" placeholder="Event title..." />
+                <select id="ev-tag-in" class="mini-select" title="Category">
+                  <option value="Work">Work</option>
+                  <option value="Study">Study</option>
+                  <option value="Social">Social</option>
                   <option value="Personal">Personal</option>
                 </select>
                 <input id="ev-time-in" type="time" style="max-width:86px;" />
-                <select id="ev-dur-in" class="mini-select" title="Durasi">
+                <select id="ev-dur-in" class="mini-select" title="Duration">
                   <option value="30">30m</option>
-                  <option value="60" selected>1j</option>
-                  <option value="90">1.5j</option>
-                  <option value="120">2j</option>
+                  <option value="60" selected>1h</option>
+                  <option value="90">1.5h</option>
+                  <option value="120">2h</option>
                 </select>
-                <button id="ev-save-btn" class="mini-btn accent">Simpan</button>
+                <button id="ev-save-btn" class="mini-btn accent">Save</button>
               </div>
             </div>
 
@@ -192,7 +192,7 @@
           </div>
         </div>
 
-        <!-- TAB 3: DEDICATED BMKG WEATHER & KEMENAG PRAYER SCHEDULE -->
+        <!-- TAB 3: DEDICATED WEATHER & PRAYER TIMES -->
         <div class="tab-pane" data-pane="weather">
           <div class="weather-full-pane" id="weather-full-pane">
             <!-- Apple Weather Dynamic Atmospheric Sky Effect -->
@@ -213,15 +213,15 @@
                     <span id="info-city" class="glam-city">Jakarta</span>
                     <span id="info-source-badge" class="source-pill">BMKG</span>
                   </div>
-                  <button id="btn-refresh-ext" class="sync-circle-btn" title="Sinkronkan ulang BMKG, Sholat Kemenag & Google Calendar">
+                  <button id="btn-refresh-ext" class="sync-circle-btn" title="Refresh weather, prayer & calendar">
                     <span class="svg-icon" data-ico="sync"></span>
                   </button>
                 </div>
-                <div class="glam-temp-row" id="btn-cycle-sky" title="Klik ikon cuaca untuk melihat pratinjau efek langit (Hujan / Cerah Sore / Malam)">
+                <div class="glam-temp-row" id="btn-cycle-sky" title="Click to preview sky effects (Rain / Clear / Night)">
                   <span id="info-weather-ico" class="svg-icon xl"></span>
                   <div class="glam-temp"><span id="info-temp">--</span><span class="deg">°C</span></div>
                 </div>
-                <div id="info-w-desc" class="glam-desc">Memuat prakiraan BMKG...</div>
+                <div id="info-w-desc" class="glam-desc">Loading forecast...</div>
               </div>
 
               <div id="weather-transitions" class="transitions-glam-4"></div>
@@ -229,8 +229,8 @@
 
             <div class="prayer-glam-dock">
               <div class="glam-dock-head">
-                <span class="glam-dock-title">Jadwal Sholat Kemenag RI</span>
-                <span id="prayer-next-countdown" class="source-pill">Menunggu waktu berikutnya</span>
+                <span class="glam-dock-title">Prayer Times</span>
+                <span id="prayer-next-countdown" class="source-pill">Waiting...</span>
               </div>
               <div class="prayer-strip" id="prayer-strip"></div>
               <div id="custom-feeds-bar" class="feeds-bar"></div>
@@ -241,54 +241,54 @@
         <!-- TAB 4: NOTCH FILE & TEXT SHELF (Drag-In & Native Drag-Out + Reveal) -->
         <div class="tab-pane" data-pane="shelf">
           <div class="shelf-toolbar">
-            <input id="shelf-text-in" type="text" placeholder="Ketik catatan / link lalu Enter, atau drag file ke sini..." />
-            <button id="btn-shelf-paste" class="mini-btn accent" title="Simpan isi clipboard">Paste Clipboard</button>
-            <button id="btn-shelf-clear" class="mini-btn danger" title="Bersihkan semua item Shelf">Bersihkan</button>
+            <input id="shelf-text-in" type="text" placeholder="Note / link + Enter, or drop files..." />
+            <button id="btn-shelf-paste" class="mini-btn accent" title="Save clipboard text">Paste</button>
+            <button id="btn-shelf-clear" class="mini-btn danger" title="Clear all Shelf items">Clear</button>
           </div>
           <div id="shelf-dropzone" class="shelf-list">
             <div id="shelf-empty" class="empty-state compact">
-              <div>Drag & drop file / gambar ke Notch (bisa ditarik keluar lagi / klik kanan untuk buka folder)</div>
+              <div>Drop files, images, or notes here (drag out anytime or right-click to reveal)</div>
             </div>
           </div>
         </div>
 
-        <!-- TAB 5: SETTINGS (macOS Sequoia / Alcove Bento Control Center) -->
+        <!-- TAB 5: SETTINGS -->
         <div class="tab-pane" data-pane="settings">
           <div class="settings-scroll">
             <div class="set-bento-card">
               <div class="set-row">
                 <div class="set-lbl-group">
-                  <span class="set-title">Posisi & Ukuran</span>
+                  <span class="set-title">Position & Size</span>
                   <span class="set-sub">Offset <strong id="lbl-offsetx">0</strong>px</span>
                 </div>
                 <div class="seg-group">
-                  <button class="seg-btn" data-offset="-460">Kiri</button>
-                  <button class="seg-btn" data-offset="0">Tengah</button>
-                  <button class="seg-btn" data-offset="460">Kanan</button>
+                  <button class="seg-btn" data-offset="-460">Left</button>
+                  <button class="seg-btn" data-offset="0">Center</button>
+                  <button class="seg-btn" data-offset="460">Right</button>
                 </div>
                 <div class="seg-group">
                   <button class="seg-btn" data-height="30">30px</button>
                   <button class="seg-btn" data-height="34">34px</button>
                   <button class="seg-btn" data-height="40">40px</button>
                 </div>
-                <div class="seg-group" title="Tema Tampilan Dynamic Island">
+                <div class="seg-group" title="Dynamic Island Theme">
                   <button class="seg-btn active" data-theme="normal">Normal</button>
                   <button class="seg-btn" data-theme="matte">Matte</button>
                 </div>
               </div>
               <div class="set-slider-row">
-                <span class="slider-tag">Geser Halus</span>
+                <span class="slider-tag">Fine Offset</span>
                 <input id="set-offsetx" type="range" min="-700" max="700" step="10" value="0" />
               </div>
             </div>
 
             <div class="set-toggles-grid">
               <label class="toggle-card">
-                <span>Lirik di Pill</span>
+                <span>Pill Lyrics</span>
                 <input id="chk-pill-lyrics" class="ios-switch" type="checkbox" checked />
               </label>
-              <label class="toggle-card" title="Sembunyikan pill ke atas layar agar bebas saat Screenshot penuh; arahkan kursor ke tepi atas layar untuk memunculkan">
-                <span>Hide ke Atas</span>
+              <label class="toggle-card" title="Hide pill above top edge for clean screenshots; hover top edge to reveal">
+                <span>Hide to Top</span>
                 <input id="chk-autohide-top" class="ios-switch" type="checkbox" />
               </label>
               <label class="toggle-card">
@@ -296,22 +296,22 @@
                 <input id="chk-fullscreen" class="ios-switch" type="checkbox" checked />
               </label>
               <label class="toggle-card">
-                <span>Auto-Start PC</span>
+                <span>Auto-Start</span>
                 <input id="chk-autostart" class="ios-switch" type="checkbox" />
               </label>
-              <label class="toggle-card" title="Tampilkan suhu cuaca di pill saat idle">
-                <span>Cuaca di Pill</span>
+              <label class="toggle-card" title="Show temperature on idle pill">
+                <span>Pill Weather</span>
                 <input id="chk-idle-weather" class="ios-switch" type="checkbox" checked />
               </label>
-              <label class="toggle-card" title="Tampilkan hitung mundur jadwal sholat di pill">
-                <span>Timer Sholat</span>
+              <label class="toggle-card" title="Show prayer countdown on idle pill">
+                <span>Prayer Timer</span>
                 <input id="chk-prayer-cd" class="ios-switch" type="checkbox" checked />
               </label>
-              <label class="toggle-card" title="Munculkan banner pengingat 10 & 5 menit sebelum serta saat waktu sholat tiba">
-                <span>Alert Adzan</span>
+              <label class="toggle-card" title="Show reminder banners 10m, 5m before & at prayer time">
+                <span>Prayer Alert</span>
                 <input id="chk-prayer-alert" class="ios-switch" type="checkbox" checked />
               </label>
-              <label class="toggle-card" title="Buka otomatis saat kursor diarahkan ke Dynamic Island">
+              <label class="toggle-card" title="Auto-expand on hover">
                 <span>Hover Expand</span>
                 <input id="chk-hover-expand" class="ios-switch" type="checkbox" checked />
               </label>
@@ -319,30 +319,30 @@
 
             <div class="set-split-grid">
               <div class="set-bento-card">
-                <span class="set-title">Kota BMKG & Sholat Kemenag</span>
+                <span class="set-title">City (Weather & Prayer)</span>
                 <div class="ev-row">
-                  <input id="set-city" type="text" value="Jakarta" placeholder="Contoh: Jakarta, Bandung, Surabaya" />
-                  <button id="btn-save-city" class="mini-btn accent">Terapkan</button>
+                  <input id="set-city" type="text" value="Jakarta" placeholder="Jakarta, London, Tokyo..." />
+                  <button id="btn-save-city" class="mini-btn accent">Apply</button>
                 </div>
               </div>
 
               <div class="set-bento-card">
                 <div class="card-head">
                   <span class="set-title">Google Calendar (.ics)</span>
-                  <button id="btn-connect-gcal" class="mini-btn subtle" title="Buka pengaturan iCal Google Calendar & auto-detect saat disalin">Ambil Link</button>
+                  <button id="btn-connect-gcal" class="mini-btn subtle" title="Open Google Calendar iCal settings & auto-detect copied URL">Get Link</button>
                 </div>
                 <div class="ev-row">
-                  <input id="set-ics" type="text" placeholder="Paste Secret iCal (.ics) Google Calendar..." />
-                  <button id="btn-save-ics" class="mini-btn accent">Simpan</button>
+                  <input id="set-ics" type="text" placeholder="Paste secret iCal (.ics) URL..." />
+                  <button id="btn-save-ics" class="mini-btn accent">Save</button>
                 </div>
               </div>
             </div>
 
             <div id="set-json-drawer" class="set-bento-card hidden">
-              <span class="set-title">Widget Data Eksternal (JSON API)</span>
+              <span class="set-title">External Data (JSON API)</span>
               <div id="set-feeds-list" class="feeds-config"></div>
               <div class="ev-row">
-                <input id="feed-label" type="text" placeholder="Label (Kurs)" style="max-width:86px;" />
+                <input id="feed-label" type="text" placeholder="Label (Rate)" style="max-width:86px;" />
                 <input id="feed-url" type="text" placeholder="https://api..." />
                 <input id="feed-path" type="text" placeholder="path.json" style="max-width:92px;" />
                 <button id="btn-add-feed" class="mini-btn accent">+</button>
@@ -351,11 +351,11 @@
 
             <div class="set-footer">
               <div class="ev-row" style="gap:5px;">
-                <button id="btn-test-hook" class="mini-btn subtle">Tes Push (:17420)</button>
-                <button id="btn-toggle-json-drawer" class="mini-btn subtle" title="Tampilkan / sembunyikan pengaturan Widget JSON API">+ JSON API</button>
+                <button id="btn-test-hook" class="mini-btn subtle">Test Push (:17420)</button>
+                <button id="btn-toggle-json-drawer" class="mini-btn subtle" title="Show / hide custom JSON API widget">+ JSON API</button>
               </div>
-              <span class="hint-txt">Hide Atas: <strong>Alt+H</strong> · Hide Total: <strong>Ctrl+Alt+N</strong></span>
-              <button id="btn-quit" class="mini-btn danger">Keluar</button>
+              <span class="hint-txt">Top Hide: <strong>Alt+H</strong> · Toggle: <strong>Ctrl+Alt+N</strong></span>
+              <button id="btn-quit" class="mini-btn danger">Quit</button>
             </div>
           </div>
         </div>

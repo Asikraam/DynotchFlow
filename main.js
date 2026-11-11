@@ -119,7 +119,7 @@ const DEFAULT_CONFIG = {
   customFeeds: [
     {
       id: 'usd_idr',
-      label: 'Kurs USD/IDR',
+      label: 'USD/IDR',
       url: 'https://open.er-api.com/v6/latest/USD',
       jsonPath: 'rates.IDR',
       prefix: 'Rp ',
@@ -688,8 +688,8 @@ function createWindow() {
     if (process.argv.includes('--just-installed-to-programs')) {
       setTimeout(() => {
         sendToRenderer('bridge:toast', {
-          title: 'DynotchFlow Terinstal di Programs',
-          body: 'Aplikasi kini berjalan aman dari AppData\\Local\\Programs\\DynotchFlow!',
+          title: 'DynotchFlow Installed',
+          body: 'Running from AppData\\Local\\Programs\\DynotchFlow',
           accent: '#10b981',
           duration: 4800
         });
@@ -746,20 +746,20 @@ function createTray() {
   tray.setToolTip('DynotchFlow — Dynamic Island (Ctrl+Alt+N)');
   const menu = Menu.buildFromTemplate([
     {
-      label: 'Tampilkan / Sembunyikan (Ctrl+Alt+N)',
+      label: 'Show / Hide (Ctrl+Alt+N)',
       click: () => toggleVisibility()
     },
     {
-      label: 'Toggle Auto-Hide Atas (Ctrl+Alt+H)',
+      label: 'Toggle Top Auto-Hide (Ctrl+Alt+H)',
       click: () => toggleAutoHideTop()
     },
     {
-      label: 'Refresh Cuaca, Sholat & Kalender',
+      label: 'Refresh Weather, Prayer & Calendar',
       click: () => refreshExternalData(true)
     },
     { type: 'separator' },
     {
-      label: 'Posisi Tengah (Reset Offset)',
+      label: 'Center Position (Reset Offset)',
       click: () => {
         config.offsetX = 0;
         saveJson(CONFIG_PATH, config);
@@ -768,7 +768,7 @@ function createTray() {
       }
     },
     {
-      label: 'Geser Kanan (+460px Side-by-Side)',
+      label: 'Shift Right (+460px Side-by-Side)',
       click: () => {
         config.offsetX = 460;
         saveJson(CONFIG_PATH, config);
@@ -777,11 +777,11 @@ function createTray() {
       }
     },
     {
-      label: 'Optimalkan RAM Sekarang',
+      label: 'Optimize RAM Now',
       click: () => requestMemoryTrim()
     },
     {
-      label: 'Buka Folder Program (AppData\\Local\\Programs)',
+      label: 'Open Program Folder (AppData\\Local\\Programs)',
       click: () => {
         const dir = fs.existsSync(PROGRAMS_INSTALL_DIR) ? PROGRAMS_INSTALL_DIR : __dirname;
         shell.openPath(dir);
@@ -789,7 +789,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Keluar DynotchFlow',
+      label: 'Quit DynotchFlow',
       click: () => app.quit()
     }
   ]);
@@ -815,8 +815,8 @@ function toggleAutoHideTop() {
   saveJson(CONFIG_PATH, config);
   sendToRenderer('bridge:config', config);
   sendToRenderer('bridge:toast', {
-    title: config.autoHideTopEdge ? 'Mode Hide ke Atas Aktif (Ctrl+Alt+H)' : 'Mode Standar Pill Tetap (Ctrl+Alt+H)',
-    body: config.autoHideTopEdge ? 'Sentuh tepi atas layar untuk memunculkan Island' : 'Dynamic Island tetap tampil di atas layar',
+    title: config.autoHideTopEdge ? 'Top Auto-Hide Enabled (Ctrl+Alt+H)' : 'Standard Pill Mode (Ctrl+Alt+H)',
+    body: config.autoHideTopEdge ? 'Hover the top edge of the screen to reveal the Island' : 'Dynamic Island stays visible at the top bezel',
     accent: '#38bdf8',
     duration: 2100
   });
@@ -924,8 +924,8 @@ function setupIpc() {
         sendToRenderer('bridge:config', config);
         await refreshExternalData();
         sendToRenderer('bridge:toast', {
-          title: 'Google Calendar Aktif',
-          body: 'Jadwal iCal otomatis tersambung!',
+          title: 'Google Calendar Linked',
+          body: 'iCal feed connected automatically',
           accent: '#38bdf8',
           duration: 4200
         });
@@ -1002,7 +1002,7 @@ function setupIpc() {
     try {
       if (Notification.isSupported()) {
         const notif = new Notification({
-          title: String(payload?.title || 'Jadwal DynotchFlow'),
+          title: String(payload?.title || 'DynotchFlow Schedule'),
           body: String(payload?.body || ''),
           silent: false
         });
@@ -1031,14 +1031,17 @@ function setupIpc() {
     const durationMin = Math.max(15, Number(ev.durationMin || 60));
     const tag = String(ev.tag || 'Personal').trim();
     const colorMap = {
+      Study: '#4986e7',
       Kuliah: '#4986e7',
+      Work: '#16a765',
       Profesional: '#16a765',
+      Social: '#fa573c',
       Sosial: '#fa573c',
       Personal: '#cd74e6'
     };
     const item = {
       id: `local_${Date.now()}`,
-      title: String(ev.title || 'Agenda').trim(),
+      title: String(ev.title || 'Event').trim(),
       tag,
       color: colorMap[tag] || '#38bdf8',
       location: String(ev.location || '').trim(),
@@ -1063,7 +1066,7 @@ function setupIpc() {
   ipcMain.handle('notch:test-webhook', async () => {
     sendToRenderer('bridge:toast', {
       title: 'Webhook Push OK',
-      body: `Kirim POST ke http://127.0.0.1:${WEBHOOK_PORT}/push`,
+      body: `POST JSON to http://127.0.0.1:${WEBHOOK_PORT}/push`,
       accent: '#4cc9f0',
       duration: 4500
     });

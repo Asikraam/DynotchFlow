@@ -1931,7 +1931,7 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 
 /* ==========================================================================
-   SCOPED THEME 2: PURE MATTE MINIMALIST (Zero Gloss, Zero Ambient Glow)
+   SCOPED THEME 2: PURE MATTE MINIMALIST (Exact Normal Parity, Zero Glow)
    ========================================================================== */
 #notch-shell.theme-matte {
   --accent: #e4e4e7;
@@ -1952,13 +1952,8 @@ input[type="text"]:focus, input[type="time"]:focus {
 #notch-shell.theme-matte .wing path:first-child { fill: #09090b; }
 #notch-shell.theme-matte .wing path:last-child { stroke: rgba(255, 255, 255, 0.07); }
 
-#notch-shell.theme-matte.state-expanded {
-  width: 528px;
-  height: 276px;
-  border-radius: 0 0 20px 20px;
-}
-
-#notch-shell.theme-matte .cover-backdrop { opacity: 0 !important; }
+#notch-shell.theme-matte .cover-backdrop-clip { display: none; }
+#notch-shell.theme-matte .cover-backdrop { display: none; opacity: 0 !important; }
 #notch-shell.theme-matte .ambient-glow { display: none; }
 #notch-shell.theme-matte .pill-art { box-shadow: none; }
 #notch-shell.theme-matte .idle-alert {
@@ -1969,62 +1964,32 @@ input[type="text"]:focus, input[type="time"]:focus {
 #notch-shell.theme-matte .alert-dot { box-shadow: none; }
 #notch-shell.theme-matte .sched-alert-bar { box-shadow: none; }
 
-#notch-shell.theme-matte .expanded-view {
-  padding: 10px 16px 12px;
-  gap: 10px;
-}
-
 #notch-shell.theme-matte .exp-header {
-  height: 22px;
-  padding: 0 0 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  gap: 8px;
-}
-
-#notch-shell.theme-matte .tab-group {
-  gap: 4px;
-  background: transparent;
-  border: none;
-  padding: 0;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
 }
 
 #notch-shell.theme-matte .tab-btn {
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
   color: #71717a;
-  gap: 5px;
-  background: transparent;
-}
-#notch-shell.theme-matte .tab-btn.icon-only-tab {
-  width: 22px;
-  padding: 0;
 }
 #notch-shell.theme-matte .tab-btn:hover {
   color: #d4d4d8;
-  background: rgba(255, 255, 255, 0.03);
 }
 #notch-shell.theme-matte .tab-btn.active {
   color: #f4f4f5;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.07);
 }
-#notch-shell.theme-matte .tab-btn.active::after { display: none; }
+#notch-shell.theme-matte .tab-btn.active::after {
+  background: #e4e4e7;
+  box-shadow: none;
+}
 
 #notch-shell.theme-matte .badge-count {
   background: #27272a;
   color: #e4e4e7;
-  font-weight: 600;
 }
 
-#notch-shell.theme-matte .header-actions { gap: 4px; }
 #notch-shell.theme-matte .icon-chip,
 #notch-shell.theme-matte .icon-btn {
   color: #71717a;
-  border-radius: 6px;
-  height: 22px;
 }
 #notch-shell.theme-matte .icon-chip:hover,
 #notch-shell.theme-matte .icon-btn:hover {
@@ -2037,63 +2002,37 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 
 /* Matte Music */
-#notch-shell.theme-matte .music-grid {
-  grid-template-columns: 206px 1fr;
-  gap: 18px;
-  padding: 4px 0 0;
-}
-#notch-shell.theme-matte .music-left {
-  padding: 4px 14px 4px 0;
-  justify-content: center;
-  gap: 14px;
-}
 #notch-shell.theme-matte .music-left::after {
-  background: rgba(255, 255, 255, 0.05);
-  top: 4%;
-  bottom: 4%;
+  background: rgba(255, 255, 255, 0.06);
 }
 #notch-shell.theme-matte .exp-art {
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: none;
 }
-#notch-shell.theme-matte .track-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f4f4f5;
+#notch-shell.theme-matte .track-title { color: #f4f4f5; }
+#notch-shell.theme-matte .track-artist { color: #71717a; }
+#notch-shell.theme-matte .track-source {
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.06);
 }
-#notch-shell.theme-matte .track-artist {
-  font-size: 11px;
-  color: #71717a;
-  margin-top: 2px;
-}
-#notch-shell.theme-matte .track-source { display: none; }
-#notch-shell.theme-matte .controls-row { gap: 16px; }
 #notch-shell.theme-matte .ctrl-btn { color: #a1a1aa; }
 #notch-shell.theme-matte .ctrl-btn:hover {
   color: #f4f4f5;
   background: rgba(255, 255, 255, 0.05);
 }
 #notch-shell.theme-matte .ctrl-btn.primary {
-  width: 34px;
-  height: 34px;
   background: #f4f4f5;
   color: #09090b;
   box-shadow: none;
 }
 #notch-shell.theme-matte .ctrl-btn.primary:hover {
   background: #ffffff;
-  transform: scale(1.03);
 }
-#notch-shell.theme-matte .lyric-line { font-size: 12px; color: #52525b; }
+#notch-shell.theme-matte .lyric-line { color: #52525b; }
 #notch-shell.theme-matte .lyric-line.past { color: #3f3f46; }
 #notch-shell.theme-matte .lyric-line.near { color: #71717a; }
 #notch-shell.theme-matte .lyric-line.active {
   color: #f4f4f5;
-  font-size: 13px;
-  font-weight: 600;
   background: none;
   -webkit-background-clip: border-box;
   background-clip: border-box;
@@ -2102,15 +2041,10 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 
 /* Matte Calendar */
-#notch-shell.theme-matte .cal-toolbar { padding-bottom: 2px; }
 #notch-shell.theme-matte .cal-filter-pill {
   background: transparent;
   border-color: transparent;
   color: #71717a;
-  border-radius: 6px;
-  height: 22px;
-  padding: 0 8px;
-  font-size: 10.5px;
 }
 #notch-shell.theme-matte .cal-filter-pill:hover {
   color: #d4d4d8;
@@ -2123,44 +2057,31 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 #notch-shell.theme-matte .cal-item {
   background: #121215;
-  border: 1px solid rgba(255, 255, 255, 0.045);
-  border-left: 2.5px solid var(--cal-color, #a1a1aa);
-  border-radius: 8px;
-  padding: 6.5px 10px;
+  border-color: rgba(255, 255, 255, 0.045);
   box-shadow: none;
 }
 #notch-shell.theme-matte .cal-item:hover { background: #16161a; }
 
 /* Matte Weather & Prayer */
 #notch-shell.theme-matte .weather-sky-fx { display: none; }
-#notch-shell.theme-matte .weather-full-pane {
-  background: transparent;
-  border: none;
-  padding: 0;
-  gap: 8px;
-}
 #notch-shell.theme-matte .weather-glam-hero,
 #notch-shell.theme-matte .glam-trans-card,
 #notch-shell.theme-matte .prayer-glam-dock {
   background: #121215;
-  border: 1px solid rgba(255, 255, 255, 0.045);
-  border-radius: 10px;
+  border-color: rgba(255, 255, 255, 0.045);
   box-shadow: none;
 }
-#notch-shell.theme-matte .glam-trans-card { border-radius: 9px; }
-#notch-shell.theme-matte .glam-trans-card .gt-time { color: #a1a1aa; font-weight: 600; }
+#notch-shell.theme-matte .glam-trans-card .gt-time { color: #a1a1aa; }
 #notch-shell.theme-matte .glam-trans-card .gt-desc { color: #71717a; }
 #notch-shell.theme-matte #info-weather-ico svg { color: #e4e4e7; filter: none; }
 #notch-shell.theme-matte .source-pill {
   background: rgba(255, 255, 255, 0.06);
   color: #a1a1aa;
-  border: none;
-  font-weight: 500;
+  border-color: transparent;
 }
 #notch-shell.theme-matte .prayer-chip {
   background: #0d0d10;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
+  border-color: rgba(255, 255, 255, 0.04);
   box-shadow: none;
 }
 #notch-shell.theme-matte .prayer-chip.next {
@@ -2170,11 +2091,11 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 #notch-shell.theme-matte .prayer-chip .p-name { color: #71717a; }
 #notch-shell.theme-matte .prayer-chip.next .p-name { color: #e4e4e7; }
-#notch-shell.theme-matte .prayer-chip .p-time { color: #d4d4d8; font-weight: 600; }
+#notch-shell.theme-matte .prayer-chip .p-time { color: #d4d4d8; }
 #notch-shell.theme-matte .prayer-chip.next .p-time { color: #ffffff; }
 #notch-shell.theme-matte .feeds-bar span {
   background: #0d0d10;
-  border: 1px solid rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.045);
   color: #71717a;
 }
 #notch-shell.theme-matte .feeds-bar strong { color: #e4e4e7; }
@@ -2182,33 +2103,23 @@ input[type="text"]:focus, input[type="time"]:focus {
 /* Matte Shelf & Settings */
 #notch-shell.theme-matte .shelf-item {
   background: #121215;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-color: rgba(255, 255, 255, 0.05);
   box-shadow: none;
 }
 #notch-shell.theme-matte .shelf-kind { color: #71717a; }
 
-#notch-shell.theme-matte .settings-scroll { gap: 6px; padding-right: 0; }
 #notch-shell.theme-matte .set-bento-card {
   background: #121215;
-  border: 1px solid rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.045);
   box-shadow: none;
-  border-radius: 9px;
-  padding: 6px 10px;
-  gap: 4px;
 }
-#notch-shell.theme-matte .set-title { font-size: 10.5px; font-weight: 500; color: #a1a1aa; }
+#notch-shell.theme-matte .set-title { color: #a1a1aa; }
 #notch-shell.theme-matte .set-sub strong { color: #e4e4e7; }
 #notch-shell.theme-matte .seg-group {
   background: #09090b;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  padding: 1.5px;
+  border-color: rgba(255, 255, 255, 0.05);
 }
 #notch-shell.theme-matte .seg-btn {
-  font-size: 9.8px;
-  padding: 2.5px 6px;
-  border-radius: 4.5px;
   color: #71717a;
 }
 #notch-shell.theme-matte .seg-btn.active {
@@ -2222,12 +2133,6 @@ input[type="text"]:focus, input[type="time"]:focus {
   box-shadow: none;
 }
 #notch-shell.theme-matte .toggle-card {
-  height: 26px;
-  padding: 0 6.5px;
-  gap: 4px;
-  border-radius: 7px;
-  font-size: 9.4px;
-  letter-spacing: -0.22px;
   color: #a1a1aa;
   background: #121215;
   border-color: rgba(255, 255, 255, 0.04);
@@ -2242,27 +2147,20 @@ input[type="text"]:focus, input[type="time"]:focus {
   color: #f4f4f5;
 }
 #notch-shell.theme-matte .ios-switch {
-  width: 24px;
-  height: 14px;
   background: #27272a;
 }
 #notch-shell.theme-matte .ios-switch::after {
-  width: 10px;
-  height: 10px;
   background: #71717a;
   box-shadow: none;
 }
 #notch-shell.theme-matte .ios-switch:checked { background: #e4e4e7; }
 #notch-shell.theme-matte .ios-switch:checked::after {
-  transform: translateX(10px);
   background: #09090b;
 }
 #notch-shell.theme-matte input[type="text"],
 #notch-shell.theme-matte input[type="time"] {
-  height: 23px;
   background: #09090b;
   border-color: rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
   color: #e4e4e7;
 }
 #notch-shell.theme-matte input[type="text"]:focus,
@@ -2271,13 +2169,10 @@ input[type="text"]:focus, input[type="time"]:focus {
 }
 #notch-shell.theme-matte .mini-btn,
 #notch-shell.theme-matte .sync-circle-btn {
-  height: 23px;
-  border-radius: 6px;
   background: #1c1c21;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.06);
   color: #d4d4d8;
   box-shadow: none;
-  font-weight: 500;
 }
 #notch-shell.theme-matte .mini-btn:hover,
 #notch-shell.theme-matte .sync-circle-btn:hover {
@@ -2288,7 +2183,6 @@ input[type="text"]:focus, input[type="time"]:focus {
   background: #e4e4e7;
   color: #09090b;
   border-color: transparent;
-  font-weight: 600;
 }
 #notch-shell.theme-matte .mini-btn.accent:hover { background: #ffffff; }
 #notch-shell.theme-matte .mini-btn.danger {
@@ -2296,4 +2190,3 @@ input[type="text"]:focus, input[type="time"]:focus {
   color: #f87171;
   border-color: rgba(239, 68, 68, 0.18);
 }
-#notch-shell.theme-matte .set-footer { padding: 2px 2px 0; margin-top: auto; }

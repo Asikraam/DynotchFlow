@@ -139,20 +139,55 @@ const topEdgeSensor = document.getElementById('top-edge-sensor');
 let manualSkyTheme = '';
 
 function cleanEventTitle(raw) {
-  return String(raw || '').replace(/^\[(Kuliah|Pro|Profesional|Sosial|Personal|Libur)\]\s*/i, '').trim();
+  return String(raw || '').replace(/^\[(Kuliah|Study|Pro|Profesional|Work|Sosial|Social|Personal|Libur)\]\s*/i, '').trim();
+}
+
+const CAL_TAG_DISPLAY = {
+  kuliah: 'Study',
+  study: 'Study',
+  pro: 'Work',
+  profesional: 'Work',
+  work: 'Work',
+  sosial: 'Social',
+  social: 'Social',
+  personal: 'Personal',
+  kalender: 'Calendar',
+  calendar: 'Calendar'
+};
+
+function normalizeCalTag(tag) {
+  const key = String(tag || '').trim().toLowerCase();
+  return CAL_TAG_DISPLAY[key] || (tag ? String(tag).trim() : 'Calendar');
+}
+
+const PRAYER_KEY_DISPLAY = {
+  subuh: 'Fajr',
+  fajr: 'Fajr',
+  dzuhur: 'Dhuhr',
+  dhuhr: 'Dhuhr',
+  ashar: 'Asr',
+  asr: 'Asr',
+  maghrib: 'Maghrib',
+  isya: 'Isha',
+  isha: 'Isha'
+};
+
+function formatPrayerName(key) {
+  const k = String(key || '').trim();
+  return PRAYER_KEY_DISPLAY[k.toLowerCase()] || k;
 }
 
 function cleanTrackDisplay(rawTitle, rawArtist) {
   const cleanPart = (s) => String(s || '')
-    .replace(/\\.(mp3|flac|wav|m4a|ogg|opus|mp4|mkv|webm)$/i, '')
-    .replace(/\\s*[\\(\\[](?:official\\s*(?:music\\s*)?(?:video|audio|lyric\\s*video|visualizer|mv)|lyrics?|lirik|audio|hd|hq|4k|remastered(?:\\s*\\d{4})?|live|explicit|clean|visualizer)[\\)\\]]/gi, '')
-    .replace(/\\s*-\\s*(?:official\\s*(?:music\\s*)?(?:video|audio)|lyrics?|remastered(?:\\s*\\d{4})?)$/gi, '')
-    .replace(/\\s{2,}/g, ' ')
+    .replace(/\.(mp3|flac|wav|m4a|ogg|opus|mp4|mkv|webm)$/i, '')
+    .replace(/\s*[\(\[](?:official\s*(?:music\s*)?(?:video|audio|lyric(?:s)?\s*video|visualizer|mv)|lyrics?|lirik|audio|hd|hq|4k|remastered(?:\s*\d{4})?|live|explicit|clean|visualizer)[\)\]]/gi, '')
+    .replace(/\s*-\s*(?:official\s*(?:music\s*)?(?:video|audio)|lyrics?|remastered(?:\s*\d{4})?)$/gi, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
   const t = cleanPart(lyricsState.title || rawTitle);
   const a = cleanPart(lyricsState.artist || rawArtist);
   if (t && a) return `${t} · ${a}`;
-  return t || a || 'Memutar Media';
+  return t || a || 'Playing Media';
 }
 
 function fmtHHMM(ms) {
@@ -174,19 +209,19 @@ function getNextCountdown() {
     const shortTitle = cleanEventTitle(ev.title).replace(/^\[[^\]]+\]\s*/, '').slice(0, 22);
     if (diffStartMin >= 0 && diffStartMin <= 60) {
       return {
-        text: `${fmtHHMM(ev.startMs)} ${shortTitle} · ${diffStartMin === 0 ? 'Skrg' : diffStartMin + 'm lagi'}`,
+        text: `${fmtHHMM(ev.startMs)} ${shortTitle} · ${diffStartMin === 0 ? 'Now' : 'in ' + diffStartMin + 'm'}`,
         color: ev.color || '#38bdf8'
       };
     }
     if (isLive) {
       return {
-        text: `${fmtHHMM(ev.startMs)} ${shortTitle} · Skrg`,
+        text: `${fmtHHMM(ev.startMs)} ${shortTitle} · Now`,
         color: ev.color || '#10b981'
       };
     }
   }
 
-  // 2. Check next prayer within 35 min (including midnight rollover for Subuh)
+  // 2. Check next prayer within 35 min (including midnight rollover for Fajr)
   if (config.showPrayerCountdown !== false) {
     const timings = (externalState.prayer && externalState.prayer.timings) || [];
     for (const p of timings) {
@@ -196,7 +231,7 @@ function getNextCountdown() {
       if (diff < -720) diff += 1440; // Midnight rollover
       if (diff >= 0 && diff <= 35) {
         return {
-          text: `Sholat ${p.key} · ${diff === 0 ? 'Skrg' : diff + 'm lagi'}`,
+          text: `${formatPrayerName(p.key)} · ${diff === 0 ? 'Now' : 'in ' + diff + 'm'}`,
           color: '#38bdf8'
         };
       }
@@ -259,21 +294,21 @@ function checkScheduleTransitions() {
   for (const ev of events) {
     if (ev.allDay) continue;
     const diffMin = Math.round((ev.startMs - nowMs) / 60000);
-    const timeRange = `${fmtHHMM(ev.startMs)} – ${fmtHHMM(ev.endMs || ev.startMs + 3600000)} · ${ev.tag || 'Kalender'}`;
+    const timeRange = `${fmtHHMM(ev.startMs)} – ${fmtHHMM(ev.endMs || ev.startMs + 3600000)} · ${normalizeCalTag(ev.tag)}`;
     const cleanT = cleanEventTitle(ev.title);
 
     // 10-minute heads-up notification (tolerant 9..10m range)
     const key10 = `${ev.id}_10m`;
     if (diffMin <= 10 && diffMin >= 9 && !notifiedEventKeys.has(key10)) {
       notifiedEventKeys.add(key10);
-      flashScheduleAlert('10 MENIT LAGI', cleanT, timeRange, ev.color || '#fbbf24', ev.htmlLink, true);
+      flashScheduleAlert('10 MIN REMINDER', cleanT, timeRange, ev.color || '#fbbf24', ev.htmlLink, true);
     }
 
     // Event start notification (tolerant -1..0m range)
     const keyStart = `${ev.id}_start`;
     if (diffMin <= 0 && diffMin >= -1 && !notifiedEventKeys.has(keyStart)) {
       notifiedEventKeys.add(keyStart);
-      flashScheduleAlert('JADWAL DIMULAI SEKARANG', cleanT, timeRange, ev.color || '#10b981', ev.htmlLink, true);
+      flashScheduleAlert('STARTING NOW', cleanT, timeRange, ev.color || '#10b981', ev.htmlLink, true);
     }
 
     if (nowMs >= ev.startMs && nowMs <= (ev.endMs || ev.startMs + 3600000)) {
@@ -287,33 +322,34 @@ function checkScheduleTransitions() {
     if (!notifiedEventKeys.has(keyTrans)) {
       notifiedEventKeys.add(keyTrans);
       const timeRange = `${fmtHHMM(currentLive.startMs)} – ${fmtHHMM(currentLive.endMs || currentLive.startMs + 3600000)}`;
-      flashScheduleAlert('TRANSISI JADWAL BERIKUTNYA', cleanEventTitle(currentLive.title), timeRange, currentLive.color || '#38bdf8', currentLive.htmlLink, true);
+      flashScheduleAlert('NEXT EVENT', cleanEventTitle(currentLive.title), timeRange, currentLive.color || '#38bdf8', currentLive.htmlLink, true);
     }
   }
   if (currentLive) lastActiveEventId = currentLive.id;
 
-  // Check Prayer / Adzan transitions (10m, 5m before & exact time)
+  // Check Prayer transitions (10m, 5m before & exact time)
   if (config.prayerAdzanAlert !== false && externalState.prayer && Array.isArray(externalState.prayer.timings)) {
     const curMin = now.getHours() * 60 + now.getMinutes();
     const dateKey = externalState.prayer.dateKey || todayKey;
-    const cityLbl = externalState.prayer.city || config.city || 'Kemenag RI';
+    const cityLbl = externalState.prayer.city || config.city || 'Local';
     for (const p of externalState.prayer.timings) {
       const [hh, mm] = String(p.time || '').split(':').map(Number);
       if (Number.isNaN(hh) || Number.isNaN(mm)) continue;
       const pMin = hh * 60 + mm;
       const diff = pMin - curMin;
-      const key10m = `${dateKey}_${p.key}_10m`;
-      const key5m  = `${dateKey}_${p.key}_5m`;
-      const keyNow = `${dateKey}_${p.key}_now`;
+      const pName = formatPrayerName(p.key);
+      const key10m = `${dateKey}_${pName}_10m`;
+      const key5m  = `${dateKey}_${pName}_5m`;
+      const keyNow = `${dateKey}_${pName}_now`;
       if (diff === 10 && !notifiedPrayerKeys.has(key10m)) {
         notifiedPrayerKeys.add(key10m);
-        flashScheduleAlert('10 MENIT MENUJU SHOLAT', `Persiapan Sholat ${p.key} (${cityLbl})`, `${p.time} WIB · Kemenag RI`, '#38bdf8', '', true);
+        flashScheduleAlert('10 MIN TO PRAYER', `Prepare for ${pName} (${cityLbl})`, `${p.time} · Local`, '#38bdf8', '', true);
       } else if (diff === 5 && !notifiedPrayerKeys.has(key5m)) {
         notifiedPrayerKeys.add(key5m);
-        flashScheduleAlert('5 MENIT MENUJU ADZAN', `Persiapan Sholat ${p.key} (${cityLbl})`, `${p.time} WIB · Kemenag RI`, '#38bdf8', '', true);
+        flashScheduleAlert('5 MIN TO PRAYER', `Prepare for ${pName} (${cityLbl})`, `${p.time} · Local`, '#38bdf8', '', true);
       } else if (diff === 0 && !notifiedPrayerKeys.has(keyNow)) {
         notifiedPrayerKeys.add(keyNow);
-        flashScheduleAlert('WAKTU SHOLAT TIBA', `Saatnya Sholat ${p.key} (${cityLbl})`, `${p.time} WIB · Kemenag RI`, '#10b981', '', true);
+        flashScheduleAlert('PRAYER TIME', `Time for ${pName} (${cityLbl})`, `${p.time} · Local`, '#10b981', '', true);
       }
     }
   }
@@ -368,8 +404,7 @@ function syncWindowShape() {
     }
     return;
   }
-  const isMatte = config.theme === 'matte';
-  const rad = isExpanded ? (isMatte ? 20 : 24) : (isSchedAlertActive ? 20 : Math.round((Number(config.pillHeight) || 34) / 2));
+  const rad = isExpanded ? 24 : (isSchedAlertActive ? 20 : Math.round((Number(config.pillHeight) || 34) / 2));
   const key = `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.bottom)},${rad}`;
   if (key !== lastShapeKey) {
     lastShapeKey = key;
@@ -763,7 +798,7 @@ function renderLyricsList() {
   lastPassedLyricIdx = -1;
 
   if (lyricsState.loading) {
-    statusEl.textContent = 'Mencari lirik sinkron...';
+    statusEl.textContent = 'Searching synced lyrics...';
     statusEl.classList.remove('hidden');
     return;
   }
@@ -781,7 +816,7 @@ function renderLyricsList() {
       const div = document.createElement('div');
       div.className = 'lyric-line';
       div.textContent = line.text;
-      div.title = 'Klik untuk lompat ke bagian ini';
+      div.title = 'Click to seek to this line';
       div.addEventListener('click', () => {
         const dur = Math.max(0, mediaState.duration || 0);
         const scale = getLyricTempoScale(dur);
@@ -803,10 +838,10 @@ function renderLyricsList() {
     });
     listEl.appendChild(frag);
   } else if (lyricsState.isMultiSongLongVideo) {
-    statusEl.textContent = 'Video konser / mix panjang — lirik otomatis aktif saat memutar lagu satuan.';
+    statusEl.textContent = 'Long concert / mix video — synced lyrics resume on single tracks.';
     statusEl.classList.remove('hidden');
   } else {
-    statusEl.textContent = mediaState.active ? 'Lirik sinkron belum ditemukan untuk lagu ini.' : '';
+    statusEl.textContent = mediaState.active ? 'No synced lyrics found for this track.' : '';
     statusEl.classList.remove('hidden');
   }
 }
@@ -842,7 +877,7 @@ function resolveVocalLyricState(lines, syncPos) {
   }
   let cand = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (syncPos + 0.35 >= lines[i].time) cand = i;
+    if (syncPos + 0.15 >= lines[i].time) cand = i;
     else break;
   }
   if (cand < 0) {
@@ -862,7 +897,7 @@ function resolveVocalLyricState(lines, syncPos) {
   } else {
     naturalEnd = nextLine.time;
   }
-  if ((syncPos + 0.25) > naturalEnd) {
+  if ((syncPos + 0.12) > naturalEnd) {
     return { activeIdx: -1, passedIdx: cand, endT: naturalEnd };
   }
   return {
@@ -917,7 +952,7 @@ setInterval(() => {
 
   if (idx >= 0 && cachedLyricNodes[idx] && lines[idx]) {
     const startT = lines[idx].time;
-    const pct = Math.max(0, Math.min(100, ((syncPos + 0.35 - startT) / Math.max(0.4, endT - startT)) * 100));
+    const pct = Math.max(0, Math.min(100, ((syncPos + 0.15 - startT) / Math.max(0.4, endT - startT)) * 100));
     cachedLyricNodes[idx].style.setProperty('--karaoke-pct', `${pct.toFixed(1)}%`);
   }
 
@@ -1035,7 +1070,7 @@ function applyWeatherSkyTheme(w) {
   const isNight = hr >= 18 || hr < 5;
   const ico = (w && w.icon) || '';
   const desc = (w && w.label) || '';
-  if (/rain|drizzle|storm/i.test(ico) || /hujan|petir|badai/i.test(desc)) {
+  if (/rain|drizzle|storm/i.test(ico) || /rain|drizzle|shower|storm|thunder|hujan|petir|badai/i.test(desc)) {
     skyEl.classList.add('theme-rain');
   } else if (isNight) {
     skyEl.classList.add('theme-night');
@@ -1065,7 +1100,7 @@ function renderExternalUi() {
       transEl.innerHTML = '';
       const list = Array.isArray(w.transitions) && w.transitions.length > 0
         ? w.transitions.slice(0, 4)
-        : [{ time: 'Skrg', label: w.label, temp: w.temp, icon: w.icon }];
+        : [{ time: 'Now', label: w.label, temp: w.temp, icon: w.icon }];
       list.forEach((t) => {
         const card = document.createElement('div');
         card.className = 'glam-trans-card';
@@ -1083,7 +1118,7 @@ function renderExternalUi() {
     }
   }
 
-  // Prayer strip (Auto-synced daily Kemenag RI)
+  // Prayer strip (Auto-synced daily)
   const pStrip = document.getElementById('prayer-strip');
   pStrip.innerHTML = '';
   const timings = (p && p.timings) || [];
@@ -1108,14 +1143,15 @@ function renderExternalUi() {
   if (nextBadge && nextKey) {
     const hrs = Math.floor(nextDiffMin / 60);
     const mins = nextDiffMin % 60;
-    nextBadge.textContent = `${nextKey} dalam ${hrs > 0 ? hrs + 'j ' : ''}${mins}m`;
+    nextBadge.textContent = `${formatPrayerName(nextKey)} in ${hrs > 0 ? hrs + 'h ' : ''}${mins}m`;
   }
 
   timings.forEach(item => {
+    const pName = formatPrayerName(item.key);
     const div = document.createElement('div');
     div.className = `prayer-chip ${item.key === nextKey ? 'next' : ''}`;
-    div.title = p?.tanggal ? `Jadwal Sholat Kemenag (${p.tanggal})` : 'Jadwal Sholat Kemenag RI';
-    div.innerHTML = `<div class="p-name">${escapeHtml(item.key)}</div><div class="p-time">${escapeHtml(item.time)}</div>`;
+    div.title = p?.tanggal ? `Prayer schedule (${p.tanggal})` : 'Daily Prayer Schedule';
+    div.innerHTML = `<div class="p-name">${escapeHtml(pName)}</div><div class="p-time">${escapeHtml(item.time)}</div>`;
     pStrip.appendChild(div);
   });
 
@@ -1126,14 +1162,14 @@ function renderExternalUi() {
   const allEvents = calData.events || [];
   const filteredEvents = currentCalFilter === 'all'
     ? allEvents
-    : allEvents.filter(ev => (ev.tag || '').toLowerCase() === currentCalFilter.toLowerCase());
+    : allEvents.filter(ev => normalizeCalTag(ev.tag).toLowerCase() === normalizeCalTag(currentCalFilter).toLowerCase());
 
   if (filteredEvents.length === 0) {
     if (!config.icsUrl && allEvents.length === 0) {
-      calEl.innerHTML = `<div class="card-sub" style="margin:auto;text-align:center;white-space:normal;line-height:1.5;max-width:380px;">Belum ada Google Calendar tersambung.<br/>Klik tombol di bawah untuk mengambil <strong>Secret iCal (.ics)</strong> milikmu lalu Copy linknya (otomatis terdeteksi) atau tambah via <strong>+ Agenda</strong>.<div style="margin-top:10px;"><button id="btn-empty-gcal" class="mini-btn accent">Sambungkan Google Calendar (.ics)</button></div></div>`;
+      calEl.innerHTML = `<div class="card-sub" style="margin:auto;text-align:center;white-space:normal;line-height:1.5;max-width:380px;">No Google Calendar connected yet.<br/>Click below to get your <strong>Secret iCal (.ics)</strong> link, copy it (auto-detected), or add an event via <strong>+ Event</strong>.<div style="margin-top:10px;"><button id="btn-empty-gcal" class="mini-btn accent">Connect Google Calendar (.ics)</button></div></div>`;
       document.getElementById('btn-empty-gcal')?.addEventListener('click', handleGcalConnect);
     } else {
-      calEl.innerHTML = `<div class="card-sub" style="margin:auto;text-align:center;white-space:normal;line-height:1.4;">Tidak ada jadwal pada kategori <strong>${escapeHtml(currentCalFilter === 'all' ? 'Semua' : currentCalFilter)}</strong>.</div>`;
+      calEl.innerHTML = `<div class="card-sub" style="margin:auto;text-align:center;white-space:normal;line-height:1.4;">No events in <strong>${escapeHtml(currentCalFilter === 'all' ? 'All' : normalizeCalTag(currentCalFilter))}</strong>.</div>`;
     }
   } else {
     const nowMs = Date.now();
@@ -1144,12 +1180,12 @@ function renderExternalUi() {
     filteredEvents.slice(0, 14).forEach(ev => {
       const d = new Date(ev.startMs);
       const dayLbl = d.toDateString() === todayStr
-        ? 'Hari Ini'
+        ? 'Today'
         : d.toDateString() === tmrStr
-          ? 'Besok'
-          : d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+          ? 'Tomorrow'
+          : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const endMs = ev.endMs || (ev.startMs + 3600000);
-      const tStr = ev.allDay ? 'Seharian' : `${fmtHHMM(ev.startMs)} – ${fmtHHMM(endMs)}`;
+      const tStr = ev.allDay ? 'All day' : `${fmtHHMM(ev.startMs)} – ${fmtHHMM(endMs)}`;
       const cleanTitle = cleanEventTitle(ev.title);
       const isLive = !ev.allDay && nowMs >= ev.startMs && nowMs < endMs;
       const diffMin = Math.round((ev.startMs - nowMs) / 60000);
@@ -1157,14 +1193,15 @@ function renderExternalUi() {
       const statusBadge = isLive
         ? `<span class="live-pill">LIVE</span>`
         : isSoon
-          ? `<span class="soon-pill">${diffMin}m lagi</span>`
+          ? `<span class="soon-pill">in ${diffMin}m</span>`
           : '';
-      const tagStr = ev.tag ? `${ev.tag} · ${dayLbl}${ev.location ? ' · ' + ev.location : ''}` : dayLbl;
+      const dispTag = normalizeCalTag(ev.tag);
+      const tagStr = dispTag ? `${dispTag} · ${dayLbl}${ev.location ? ' · ' + ev.location : ''}` : dayLbl;
 
       const row = document.createElement('div');
       row.className = 'cal-item';
       row.style.setProperty('--cal-color', ev.color || '#38bdf8');
-      const delBtn = ev.source === 'local' ? `<button class="cal-del-btn" data-ev-del="${escapeHtml(ev.id)}" title="Hapus">×</button>` : '';
+      const delBtn = ev.source === 'local' ? `<button class="cal-del-btn" data-ev-del="${escapeHtml(ev.id)}" title="Delete">×</button>` : '';
       row.innerHTML = `
         <div class="c-left">
           <span class="c-title">${escapeHtml(cleanTitle)}</span>
@@ -1206,7 +1243,7 @@ function renderShelfUi() {
 
   listEl.innerHTML = '';
   if (shelfState.length === 0) {
-    listEl.innerHTML = `<div id="shelf-empty" class="empty-state compact"><div>Drag & drop file / gambar ke Notch (bisa ditarik keluar lagi / klik kanan untuk buka folder)</div></div>`;
+    listEl.innerHTML = `<div id="shelf-empty" class="empty-state compact"><div>Drop files, images, or notes here (drag out anytime or right-click to reveal)</div></div>`;
     return;
   }
 
@@ -1216,7 +1253,7 @@ function renderShelfUi() {
     const isFile = item.kind === 'file';
     if (isFile && item.path) {
       card.draggable = true;
-      card.title = 'Klik: Buka File | Klik Kanan / Ikon Folder: Buka di Explorer | Drag: Tarik file keluar';
+      card.title = 'Click: Open File | Right-Click: Reveal in Explorer | Drag: Drag File Out';
       card.addEventListener('dragstart', (e) => {
         e.preventDefault();
         window.notchApi.startShelfDrag(item.path);
@@ -1226,19 +1263,19 @@ function renderShelfUi() {
         window.notchApi.revealShelfFile(item.path);
       });
     } else {
-      card.title = 'Klik untuk menyalin teks ke Clipboard';
+      card.title = 'Click to copy text to Clipboard';
     }
     const revealBtn = isFile
-      ? `<button class="mini-btn icon-only" data-reveal="${escapeHtml(item.path)}" title="Tampilkan di Folder Explorer">${ICONS.folder}</button>`
+      ? `<button class="mini-btn icon-only" data-reveal="${escapeHtml(item.path)}" title="Reveal in Explorer">${ICONS.folder}</button>`
       : '';
     card.innerHTML = `
       <div class="shelf-meta">
-        <div class="shelf-kind">${isFile ? 'File (Drag-Out Aktif)' : 'Teks / Catatan'}</div>
+        <div class="shelf-kind">${isFile ? 'File (Drag-Out Ready)' : 'Note / Text'}</div>
         <div class="shelf-title">${escapeHtml(item.title || item.content)}</div>
       </div>
       <div class="ev-row">
         ${revealBtn}
-        <button class="mini-btn" data-del="${escapeHtml(item.id)}" title="Hapus">×</button>
+        <button class="mini-btn" data-del="${escapeHtml(item.id)}" title="Delete">×</button>
       </div>
     `;
     card.addEventListener('click', async (e) => {
@@ -1256,7 +1293,7 @@ function renderShelfUi() {
         window.notchApi.openShelfFile(item.path);
       } else {
         await window.notchApi.copyText(item.content);
-        flashHud(ICONS.shelf, 'Tersalin', 100, 1400);
+        flashHud(ICONS.shelf, 'Copied', 100, 1400);
       }
     });
     listEl.appendChild(card);
@@ -1412,16 +1449,16 @@ document.getElementById('btn-test-sched-notif')?.addEventListener('click', (e) =
   e.stopPropagation();
   const events = (externalState.calendar && externalState.calendar.events) || [];
   const sample = events[0] || {
-    title: '[P1-M01-S1] SACS Precede Wizard & Geometri Jacket 4-Kaki WD 50m',
-    tag: 'Profesional',
+    title: 'Design System Sprint Review',
+    tag: 'Work',
     color: '#16a765',
     startMs: Date.now(),
     endMs: Date.now() + 5400000
   };
-  const timeRange = `${fmtHHMM(sample.startMs)} – ${fmtHHMM(sample.endMs || sample.startMs + 3600000)} · ${sample.tag || 'Kalender'}`;
+  const timeRange = `${fmtHHMM(sample.startMs)} – ${fmtHHMM(sample.endMs || sample.startMs + 3600000)} · ${normalizeCalTag(sample.tag)}`;
   isExpanded = false;
   window.notchApi.setExpandedState(false);
-  flashScheduleAlert('JADWAL DIMULAI SEKARANG', cleanEventTitle(sample.title), timeRange, sample.color || '#16a765', sample.htmlLink || '', true);
+  flashScheduleAlert('STARTING NOW', cleanEventTitle(sample.title), timeRange, sample.color || '#16a765', sample.htmlLink || '', true);
 });
 
 // Quick calendar add with Category & Duration
@@ -1431,7 +1468,7 @@ document.getElementById('btn-toggle-ev-form').addEventListener('click', () => {
 document.getElementById('ev-save-btn').addEventListener('click', async () => {
   const title = document.getElementById('ev-title-in').value.trim();
   const tVal = document.getElementById('ev-time-in').value;
-  const tag = document.getElementById('ev-tag-in')?.value || 'Profesional';
+  const tag = document.getElementById('ev-tag-in')?.value || 'Work';
   const durationMin = Number(document.getElementById('ev-dur-in')?.value || 60);
   if (!title || !tVal) return;
   const [hh, mm] = tVal.split(':').map(Number);
@@ -1458,7 +1495,7 @@ async function triggerLiveSync(btnEl) {
   btns.forEach(b => b.classList.add('spinning'));
   const badge = document.getElementById('info-source-badge');
   const prevTxt = badge ? badge.textContent : 'BMKG';
-  if (badge) badge.textContent = 'Menyinkronkan...';
+  if (badge) badge.textContent = 'Syncing...';
 
   const startMs = Date.now();
   try {
@@ -1470,7 +1507,7 @@ async function triggerLiveSync(btnEl) {
   }
   btns.forEach(b => b.classList.remove('spinning'));
   if (badge) {
-    badge.textContent = 'Tersinkronisasi ✓';
+    badge.textContent = 'Synced ✓';
     setTimeout(() => {
       if (badge) badge.textContent = externalState.weather?.source || prevTxt || 'BMKG';
     }, 2200);
@@ -1491,10 +1528,10 @@ document.getElementById('btn-cycle-sky')?.addEventListener('click', (e) => {
   e.stopPropagation();
   const order = ['', 'theme-rain', 'theme-sun', 'theme-night'];
   const labels = {
-    '': 'Auto BMKG',
-    'theme-rain': 'Efek Hujan Sejuk',
-    'theme-sun': 'Efek Langit Cerah / Senja',
-    'theme-night': 'Efek Langit Malam Berbintang'
+    '': 'Auto Forecast',
+    'theme-rain': 'Rain Sky FX',
+    'theme-sun': 'Clear / Sunset FX',
+    'theme-night': 'Starry Night FX'
   };
   const nextIdx = (order.indexOf(manualSkyTheme) + 1) % order.length;
   manualSkyTheme = order[nextIdx];
@@ -1603,7 +1640,7 @@ document.getElementById('btn-save-ics').addEventListener('click', () => {
 async function handleGcalConnect() {
   const res = await window.notchApi.connectGoogleCalendar();
   if (res && res.connected) {
-    flashHud(ICONS.calendar, 'GCal Aktif', 100, 2400);
+    flashHud(ICONS.calendar, 'GCal Linked', 100, 2400);
   }
 }
 document.getElementById('btn-connect-gcal')?.addEventListener('click', handleGcalConnect);
