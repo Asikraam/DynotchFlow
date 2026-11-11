@@ -155,6 +155,7 @@ let lastTrackKey = '';
 let lastLyricsResult = null;
 let lastMediaMsg = null;
 let currentThumb = '';
+let hasHdArt = false;
 let gcalWatchTimer = null;
 let isBrandNewInstall = false;
 
@@ -469,6 +470,7 @@ async function handleMediaMessage(msg) {
       lastTrackKey = '';
       lastLyricsResult = null;
       currentThumb = '';
+      hasHdArt = false;
       sendToRenderer('bridge:lyrics', { found: false, lines: [], plain: [] });
     }
     return;
@@ -479,9 +481,10 @@ async function handleMediaMessage(msg) {
   let thumbChanged = false;
   if (isNewTrack) {
     lastTrackKey = key;
+    hasHdArt = false;
     currentThumb = msg.thumbnail || '';
     thumbChanged = true;
-  } else if (msg.thumbnail && !currentThumb) {
+  } else if (msg.thumbnail && !hasHdArt && msg.thumbnail !== currentThumb) {
     currentThumb = msg.thumbnail;
     thumbChanged = true;
   }
@@ -494,6 +497,7 @@ async function handleMediaMessage(msg) {
     sendToRenderer('bridge:lyrics', { loading: true, found: false, lines: [], plain: [] });
     services.fetchAlbumArtHD(msg.title, msg.artist, LYRICS_CACHE).then((hdArt) => {
       if (lastTrackKey === key && hdArt) {
+        hasHdArt = true;
         currentThumb = hdArt;
         lastMediaMsg = { ...lastMediaMsg, thumbnail: hdArt };
         sendToRenderer('bridge:media', lastMediaMsg);
@@ -597,7 +601,7 @@ function startWebhookServer() {
       return;
     }
     if (req.method === 'GET' && req.url === '/health') {
-      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.1' }));
+      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.2' }));
       return;
     }
     if (req.method === 'POST' && req.url === '/push') {

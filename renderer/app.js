@@ -100,10 +100,26 @@ function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 }
 
+function isBrowserPlaceholderCutout(imgEl, rawApp) {
+  try {
+    if (!/msedge|chrome|brave|firefox|mozilla|opera|vivaldi|\barc\b|\bzen\b/i.test(String(rawApp || ''))) return false;
+    const canvas = document.getElementById('color-canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, 8, 8);
+    ctx.drawImage(imgEl, 0, 0, 8, 8);
+    const data = ctx.getImageData(0, 0, 8, 8).data;
+    const corners = [data[3], data[31], data[227], data[255]];
+    return corners.filter(a => a < 180).length >= 3;
+  } catch {
+    return false;
+  }
+}
+
 function extractDominantColor(imgEl) {
   try {
     const canvas = document.getElementById('color-canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, 8, 8);
     ctx.drawImage(imgEl, 0, 0, 8, 8);
     const data = ctx.getImageData(0, 0, 8, 8).data;
     let r = 0, g = 0, b = 0, count = 0;
@@ -1079,13 +1095,30 @@ function renderMediaUi() {
         const pillArt = document.getElementById('pill-art');
         const expArt  = document.getElementById('exp-art');
         const backdrop = document.getElementById('cover-backdrop');
-        pillArt.src = src;
-        expArt.src  = src;
         if (mediaState.thumbnail) {
-          backdrop.style.backgroundImage = `url("${mediaState.thumbnail}")`;
-          backdrop.classList.add('has-cover');
-          expArt.onload = () => extractDominantColor(expArt);
+          const thumbUri = mediaState.thumbnail;
+          const appRaw = mediaState.app;
+          expArt.onload = () => {
+            expArt.onload = null;
+            if (isBrowserPlaceholderCutout(expArt, appRaw)) {
+              pillArt.src = DEFAULT_VINYL_ART;
+              expArt.src  = DEFAULT_VINYL_ART;
+              backdrop.style.backgroundImage = 'none';
+              backdrop.classList.remove('has-cover');
+              document.documentElement.style.setProperty('--accent', '#4cc9f0');
+              document.documentElement.style.setProperty('--accent-rgb', '76, 201, 240');
+              return;
+            }
+            backdrop.style.backgroundImage = `url("${thumbUri}")`;
+            backdrop.classList.add('has-cover');
+            extractDominantColor(expArt);
+          };
+          pillArt.src = thumbUri;
+          expArt.src  = thumbUri;
         } else {
+          expArt.onload = null;
+          pillArt.src = DEFAULT_VINYL_ART;
+          expArt.src  = DEFAULT_VINYL_ART;
           backdrop.style.backgroundImage = 'none';
           backdrop.classList.remove('has-cover');
         }

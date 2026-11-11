@@ -1335,10 +1335,90 @@ async function fetchCustomFeed(feed) {
   }
 }
 
+function scoreArtCandidate(candTitle, candArtist, targetTitle, targetArtist) {
+  const fold = (s) => normSym(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s{2,}/g, ' ').trim();
+  const cT = fold(candTitle);
+  const cA = fold(candArtist);
+  const tT = fold(stripRemixNoise(targetTitle) || targetTitle);
+  const tA = fold(targetArtist);
+  if (!cT || !tT) return 0;
+
+  let score = 0;
+  if (cT === tT) score += 60;
+  else if (cT.includes(tT) || tT.includes(cT)) score += 42;
+  else {
+    const tWords = tT.split(' ').filter(w => w.length >= 2);
+    if (tWords.length > 0) {
+      const hits = tWords.filter(w => cT.includes(w)).length;
+      if (hits / tWords.length >= 0.6) score += 28;
+    }
+  }
+  if (score === 0) return 0;
+
+  if (tA) {
+    if (cA === tA || cA.includes(tA) || tA.includes(cA)) score += 40;
+    else {
+      const aWords = tA.split(' ').filter(w => w.length >= 2);
+      const aHits = aWords.filter(w => cA.includes(w)).length;
+      if (aWords.length > 0 && aHits > 0) score += 22;
+      else score -= 25;
+    }
+  } else {
+    // When artist isn't known cleanly, require strong title match
+    if (score < 42) return 0;
+    score += 20;
+  }
+  return score;
+}
+
+async function searchItunesArt(query, country = '') {
+  try {
+    const cc = country ? `&country=${encodeURIComponent(country)}` : '';
+    const data = await fetchJson(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5${cc}`, 5500);
+    return (data && Array.isArray(data.results) ? data.results : [])
+      .filter(x => x && x.artworkUrl100)
+      .map(x => ({
+        title: x.trackName || '',
+        artist: x.artistName || '',
+        url: x.artworkUrl100.replace('100x100bb', '600x600bb')
+      }));
+  } catch { return []; }
+}
+
+async function searchDeezerArt(query) {
+  try {
+    const data = await fetchJson(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=5`, 5500);
+    return (data && Array.isArray(data.data) ? data.data : [])
+      .filter(x => x && x.album && (x.album.cover_big || x.album.cover_xl || x.album.cover_medium))
+      .map(x => ({
+        title: x.title_short || x.title || '',
+        artist: (x.artist && x.artist.name) || '',
+        url: x.album.cover_big || x.album.cover_xl || x.album.cover_medium
+      }));
+  } catch { return []; }
+}
+
+function pickBestArtUrl(candidates, targetTitle, targetArtist) {
+  let best = null;
+  let bestScore = 0;
+  for (const c of candidates) {
+    const sc = scoreArtCandidate(c.title, c.artist, targetTitle, targetArtist);
+    if (sc > bestScore) {
+      bestScore = sc;
+      best = c.url;
+    }
+  }
+  return bestScore >= 45 ? best : '';
+}
+
 async function fetchAlbumArtHD(rawTitle, rawArtist, cacheDir) {
-  const { title, artist } = cleanTrackInfo(rawTitle, rawArtist);
-  if (!title) return '';
-  const cacheKey = 'art_' + crypto.createHash('sha1').update(`${title.toLowerCase()}|${artist.toLowerCase()}`).digest('hex');
+  const { title, artist, baseTitle, baseArtist, primaryArtist, altSwapped } = cleanTrackInfo(rawTitle, rawArtist);
+  const artTitle = baseTitle || title;
+  if (!artTitle) return '';
+
+  const isJunkArtist = !baseArtist || /^(?:youtube|chrome|msedge|edge|brave|opera|firefox|vlc|browser|music|official|channel)$/i.test(baseArtist);
+  const artArtist = isJunkArtist ? '' : (primaryArtist || baseArtist || artist);
+  const cacheKey = 'art_' + crypto.createHash('sha1').update(`${artTitle.toLowerCase()}|${artArtist.toLowerCase()}`).digest('hex');
   const cacheFile = path.join(cacheDir, `${cacheKey}.txt`);
   try {
     if (fs.existsSync(cacheFile)) {
@@ -1347,18 +1427,53 @@ async function fetchAlbumArtHD(rawTitle, rawArtist, cacheDir) {
   } catch {}
 
   try {
-    const q = artist ? `${artist} ${title}` : title;
-    const data = await fetchJson(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=3`, 6000);
-    const item = data && Array.isArray(data.results) && data.results[0];
-    if (!item || !item.artworkUrl100) return '';
-    const hdUrl = item.artworkUrl100.replace('100x100bb', '600x600bb');
+    const qPrimary = artArtist ? `${artArtist} ${artTitle}` : artTitle;
+    const [usRes, idRes, dzRes] = await Promise.allSettled([
+      searchItunesArt(qPrimary, ''),
+      searchItunesArt(qPrimary, 'id'),
+      searchDeezerArt(qPrimary)
+    ]);
+    let pool = [
+      ...(usRes.status === 'fulfilled' ? usRes.value : []),
+      ...(idRes.status === 'fulfilled' ? idRes.value : []),
+      ...(dzRes.status === 'fulfilled' ? dzRes.value : [])
+    ];
+    let hdUrl = pickBestArtUrl(pool, artTitle, artArtist);
+
+    if (!hdUrl && altSwapped && altSwapped.title) {
+      const altTitle = stripRemixNoise(altSwapped.title) || altSwapped.title;
+      const altArtist = stripRemixNoise(altSwapped.artist) || altSwapped.artist;
+      const qAlt = altArtist ? `${altArtist} ${altTitle}` : altTitle;
+      const [idAlt, dzAlt] = await Promise.allSettled([
+        searchItunesArt(qAlt, 'id'),
+        searchDeezerArt(qAlt)
+      ]);
+      const altPool = [
+        ...(idAlt.status === 'fulfilled' ? idAlt.value : []),
+        ...(dzAlt.status === 'fulfilled' ? dzAlt.value : [])
+      ];
+      hdUrl = pickBestArtUrl(altPool, altTitle, altArtist) || pickBestArtUrl(altPool, altArtist, altTitle);
+    }
+
+    if (!hdUrl && artArtist) {
+      const titleOnly = await searchItunesArt(artTitle, 'id');
+      hdUrl = pickBestArtUrl(titleOnly, artTitle, artArtist);
+    }
+
+    if (!hdUrl) return '';
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 6500);
     try {
       const imgRes = await fetch(hdUrl, { signal: controller.signal });
       if (!imgRes.ok) return '';
       const arrBuf = await imgRes.arrayBuffer();
-      const b64 = `data:image/jpeg;base64,${Buffer.from(arrBuf).toString('base64')}`;
+      const buf = Buffer.from(arrBuf);
+      if (buf.length < 200) return '';
+      const ct = (imgRes.headers.get('content-type') || '').toLowerCase();
+      let mime = ct.includes('png') ? 'image/png' : (ct.includes('webp') ? 'image/webp' : 'image/jpeg');
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) mime = 'image/png';
+      else if (buf.length >= 12 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 && buf[8] === 0x57 && buf[9] === 0x45) mime = 'image/webp';
+      const b64 = `data:${mime};base64,${buf.toString('base64')}`;
       fs.mkdirSync(cacheDir, { recursive: true });
       fs.writeFileSync(cacheFile, b64, 'utf8');
       pruneCacheDir(cacheDir, 160);

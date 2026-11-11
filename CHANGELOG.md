@@ -2,6 +2,11 @@
 
 All notable changes to **DynotchFlow** are documented in this file.
 
+## [1.0.2] — 2026-11-11
+### Fixed & Improved
+- **HD Album Cover Matching for Indonesian & Global Tracks (`services.js`):** Expanded `fetchAlbumArtHD()` to query US iTunes, **Indonesia iTunes (`country=id`)**, and **Deezer** in parallel with relevance scoring (`scoreArtCandidate`), reversed *Artist — Title* fallback resolution, and wrong-artist rejection — fixing missing covers when playing Indonesian or Asian tracks in web browsers.
+- **Browser Icon / Delayed Thumbnail Guard (`NotchBridge.cs`, `main.js`, `renderer/app.js`):** Added delayed Windows GSMTC thumbnail retry ticks (`thumbRetryTicks` + periodic FNV-1a hash check) so Chromium/Edge/Brave tabs that populate video artwork asynchronously replace their initial browser icon automatically, plus transparent-corner cutout detection (`isBrowserPlaceholderCutout`) that renders the clean vinyl disc instead of a browser app logo.
+
 ## [1.0.1] — 2026-11-11
 ### Fixed & Improved
 - **Clean Player Source Badges (`renderer/app.js`):** Added `formatMediaSourceName()` with `SOURCE_APP_RULES` so Microsoft Store / UWP `AppUserModelId` strings (e.g., `SpotifyAB.SpotifyMusic__zpdnckdrzrea0!Spotify` → `Spotify`, `AppleInc.AppleMusicWin_...` → `Apple Music`, `Microsoft.ZuneMusic_...` → `Media Player`, `MSEdge._crx_...` → `Edge`) display crisp short app names instead of raw package IDs.

@@ -15,8 +15,8 @@ using Windows.Storage.Streams;
 [assembly: AssemblyDescription("DynotchFlow Native WinRT Bridge")]
 [assembly: AssemblyProduct("DynotchFlow")]
 [assembly: AssemblyCompany("DynotchFlow")]
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyVersion("1.0.2.0")]
+[assembly: AssemblyFileVersion("1.0.2.0")]
 
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIAudioEndpointVolume {
@@ -302,20 +302,31 @@ public static class Program {
         return default(T);
     }
 
-    private static string ReadThumbBase64(IRandomAccessStreamReference thumbRef) {
-        if (thumbRef == null) return "";
+    private static string ReadThumbBase64(IRandomAccessStreamReference thumbRef, ref ulong lastSig) {
+        if (thumbRef == null) return null;
         Windows.Storage.Streams.IRandomAccessStreamWithContentType stream = null;
         try {
             stream = AwaitWinRT(thumbRef.OpenReadAsync(), 1200);
-            if (stream == null) return "";
+            if (stream == null) return null;
             using (var netStream = (Stream)asStreamMethod.Invoke(null, new object[] { stream }))
             using (var ms = new MemoryStream()) {
                 netStream.CopyTo(ms);
                 byte[] bytes = ms.ToArray();
-                if (bytes == null || bytes.Length == 0 || bytes.Length > 2097152) return "";
-                return "data:image/jpeg;base64," + Convert.ToBase64String(bytes);
+                if (bytes == null || bytes.Length == 0 || bytes.Length > 2097152) return null;
+                uint fnv = 2166136261u;
+                for (int i = 0; i < bytes.Length; i++) {
+                    fnv ^= bytes[i];
+                    fnv *= 16777619u;
+                }
+                ulong sig = (((ulong)(uint)bytes.Length) << 32) | fnv;
+                if (sig == lastSig) return null;
+                lastSig = sig;
+                string mime = "image/jpeg";
+                if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) mime = "image/png";
+                else if (bytes.Length >= 12 && bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46 && bytes[8] == 0x57 && bytes[9] == 0x45) mime = "image/webp";
+                return "data:" + mime + ";base64," + Convert.ToBase64String(bytes);
             }
-        } catch { return ""; }
+        } catch { return null; }
         finally {
             if (stream != null) { try { stream.Dispose(); } catch {} }
         }
@@ -390,6 +401,8 @@ public static class Program {
         bool lastSentFs = false;
         double lastSentPos = -999.0;
         bool isNotchExpanded = false;
+        ulong lastThumbSig = 0;
+        int thumbRetryTicks = 0;
 
         TrimMemoryFootprint();
 
@@ -476,7 +489,9 @@ public static class Program {
                     double dur = tl != null ? Math.Max(0.0, (tl.EndTime - tl.StartTime).TotalSeconds) : 0.0;
 
                     propTick++;
-                    bool needMeta = forceMetaRefresh || string.IsNullOrEmpty(cachedTitle) || (appId != cachedAppId) || (Math.Abs(dur - cachedDur) > 1.5) || (statusStr == "Playing" ? propTick % 15 == 0 : propTick % 30 == 0);
+                    if (thumbRetryTicks > 0) thumbRetryTicks--;
+                    bool checkDelayedThumb = (thumbRetryTicks > 0 && (thumbRetryTicks % 3 == 0));
+                    bool needMeta = forceMetaRefresh || string.IsNullOrEmpty(cachedTitle) || (appId != cachedAppId) || (Math.Abs(dur - cachedDur) > 1.5) || (statusStr == "Playing" ? propTick % 15 == 0 : propTick % 30 == 0) || checkDelayedThumb;
                     string thumbOut = null;
                     if (needMeta) {
                         var props = AwaitWinRT(s.TryGetMediaPropertiesAsync(), 900);
@@ -491,7 +506,11 @@ public static class Program {
                             string trackKey = cachedTitle + "||" + cachedArtist + "||" + cachedAlbum;
                             if (trackKey != lastTrackKey) {
                                 lastTrackKey = trackKey;
-                                thumbOut = ReadThumbBase64(props.Thumbnail);
+                                lastThumbSig = 0;
+                                thumbRetryTicks = 12;
+                                thumbOut = ReadThumbBase64(props.Thumbnail, ref lastThumbSig) ?? "";
+                            } else if (checkDelayedThumb || lastThumbSig == 0 || (propTick % 15 == 0)) {
+                                thumbOut = ReadThumbBase64(props.Thumbnail, ref lastThumbSig);
                             }
                         }
                     }
@@ -547,6 +566,8 @@ public static class Program {
                         fs ? "true" : "false", ts
                     ));
                     lastTrackKey = "";
+                    lastThumbSig = 0;
+                    thumbRetryTicks = 0;
                     cachedTitle = "";
                     lastSentTrack = "";
                     lastSentStatus = "none";
