@@ -27,9 +27,9 @@
 
 Most desktop Dynamic Island overlays run heavy background polling scripts or leave jagged translucent DWM titlebars around the pill on Windows 11. **DynotchFlow** combines a streamlined Electron UI with a compiled **64-bit native C# WinRT bridge (`NotchBridge.exe`)** and clean OS window-region clipping:
 
-- **Zero DWM Titlebar Artifacts & Crisp Corners:** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo.
-- **0ms Optimistic Media Control + Universal Live / DJ / Unofficial Lyrics (`< 50 MB` RAM):** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, universal fuzzy title matching across **LRCLIB**, **iTunes canonical spelling**, **Kugou LRC**, and **`lyrics.ovh`** (official tracks, live concerts, fancams, acoustic covers, and DJ/Slowed+Reverb remixes), plus **1-Tap Instant Sync** (right-click any lyric line), **2-Point Live Band Tempo Auto-Warp**, `-5s / -0.5s / +0.5s / +5s` quick calibration, and per-video saved offsets (`lyrics-sync.json`).
-- **< 50 MB RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and smart idle trimming without slowing expanded animations.
+- **Zero DWM Titlebar Artifacts & Dual Theme (`Normal` / `Matte`):** Native `MakeFramelessClean` + padded `SetWindowRgn` scanline clipping renders smooth anti-aliased concave ears and bottom corners with `0px` stray border halo. Switch cleanly between **Normal** (album-reactive glow & atmospheric sky) and **Matte Minimalist** (`#09090b` / `#121215`, zero glow).
+- **Clean Auto-Synced Lyrics + Instrumental Hold (`< 50 MB` RAM):** Native Windows GSMTC (`Play/Pause/Next/Prev/Seek`) with a **60fps wavy canvas scrubber**, universal fuzzy title matching across **LRCLIB**, **iTunes canonical spelling**, **Kugou LRC**, and **`lyrics.ovh`**, automatic tempo scaling for *Slowed / Sped-Up / Remix* variants, click-line-to-seek, and calm metadata holds during pre-vocal intros, `[Instrumental]`/`♪` breaks, long solos (`>= 10s`), and post-outro fadeouts — with zero clutter buttons.
+- **< 50 MB Settled RAM & 0% CPU Idle:** Hard V8 heap cap (`--max-old-space-size=48`), `--in-process-gpu`, cached lyric DOM nodes, and automated idle working-set trimming (`~23–40 MB` settled across processes).
 - **Hybrid Auto-Center + Marquee Pill Lyrics:** Short lines sit sharp and centered inside `30px` / `34px` / `40px` pill heights (with proportional font scaling), smoothly switching to edge-faded marquee scrolling only when a line overflows.
 
 ---
@@ -55,8 +55,8 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `693D23C4EDBB774AE9F837095C7703A8D4207EF62D5ADB2F40C444B5D0656B13` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `386244BEF5EBCB9DB576F5AE17595A0BDF158A4CB3D485DBBBA9D40DBAC05E17` |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `E7968324A81547F507B453C63AF69BAC20F2123BED429BD566E548296480D899` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `37940C7EBA36D3FE073C333FB5D90CB851C806E727A73DA116BBFBBBCFFCB92C` |
 
 </details>
 
@@ -68,9 +68,10 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 
 | Module | Highlights |
 | :--- | :--- |
-| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Matches official, live concert, fancam, acoustic cover, and DJ/Slowed+Reverb uploads via LRCLIB, iTunes canonical lookup, and Kugou LRC. Features **Right-Click / 1-Tap `"Pas-in"` snap**, **2-Point Live Tempo Auto-Warp**, `-5s / -0.5s / +0.5s / +5s` nudges, and per-video calibration memory. |
+| **Music & Synced Lyrics** | Supports Spotify, YouTube Music, Chrome, Edge, Brave, VLC, and any Windows GSMTC player. Matches official, live concert, fancam, acoustic cover, and DJ/Slowed+Reverb uploads via LRCLIB, iTunes canonical lookup, Kugou LRC, and `lyrics.ovh`. Auto-scales slowed/spedup tempos (`0.58x–1.55x`), lets you click any lyric line to seek, and holds cleanly on `Title · Artist` during intros, `[Instrumental]`/`♪` breaks, `>= 10s` solos, and outros. |
+| **Dual Theme (`Normal` / `Matte`)** | Choose **Normal** (album-reactive glow & animated sky effects) or **Matte Minimalist** (pure `#09090b` / `#121215` flat minimalist canvas with zero glow) directly from the top-right `⚙` Settings menu, complete with collapsible `+ JSON API` drawer. |
 | **Multi-Calendar (`.ics`)** | Paste one or multiple Google Calendar secret iCal (`.ics`) links (comma/newline separated) + add quick local agendas (`+ Agenda`). Supports `RRULE` (`DAILY`/`WEEKLY` + `INTERVAL`), `EXDATE` exclusions, `LIVE` & countdown chips, and start alerts. |
-| **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night`), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with H-10m, H-5m & Adzan reminders. |
+| **Weather & Prayer Times** | Atmospheric sky effects (`Rain` / `Sun` / `Night` in Normal mode), 4-slot forecast transitions via **BMKG Indonesia** (with global **Open-Meteo** fallback), and daily **Kemenag RI / myQuran** 5-prayer schedule with H-10m, H-5m & Adzan reminders. |
 | **Notch Shelf & Volume** | Drag-and-drop files, images, or notes into the island and drag files back out natively to Explorer or web apps. Scroll over the collapsed pill volume icon to step Windows Master Volume cleanly in even increments (`±2`). |
 | **Customizable Size & Auto-Hide** | Switch between **`30px` / `34px` / `40px`** pill sizes with proportional typography, slide horizontally along your display (`Kiri / Tengah / Kanan` or pixel slider), toggle Top-Edge Auto-Hide (`Alt+H`), or hide automatically when fullscreen runs on the same monitor. |
 
@@ -79,22 +80,32 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 <table>
   <tr>
     <td width="50%" align="center">
-      <img src="assets/preview-music.png" alt="Music Player & Live Karaoke Lyrics" />
-      <br /><sub><b>Music &amp; Live Synced Lyrics</b> · Wavy Scrubber, Album Glow &amp; Tempo Sync (`0.86x`)</sub>
+      <img src="assets/preview-music.png" alt="Normal Theme — Music & Synced Lyrics" />
+      <br /><sub><b>Normal Theme · Music &amp; Auto-Lyrics</b> · Wavy Scrubber, Album Glow &amp; Clean Karaoke</sub>
     </td>
     <td width="50%" align="center">
-      <img src="assets/preview-calendar.png" alt="Multi-Calendar Google Calendar View" />
-      <br /><sub><b>Multi-Calendar (<code>.ics</code>)</b> · Category Filters, LIVE &amp; Countdown Pills</sub>
+      <img src="assets/preview-matte.png" alt="Matte Minimalist Theme — Music & Synced Lyrics" />
+      <br /><sub><b>Matte Minimalist Theme</b> · Pure <code>#09090b</code> Flat Surface with Zero Glow</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
+      <img src="assets/preview-calendar.png" alt="Multi-Calendar Google Calendar View" />
+      <br /><sub><b>Multi-Calendar (<code>.ics</code>)</b> · Category Filters, LIVE &amp; Countdown Pills</sub>
+    </td>
+    <td width="50%" align="center">
       <img src="assets/preview-weather.png" alt="BMKG Weather & Kemenag Prayer Times" />
       <br /><sub><b>Weather &amp; Prayer Times</b> · Atmospheric Sky FX, BMKG &amp; Kemenag RI</sub>
     </td>
+  </tr>
+  <tr>
     <td width="50%" align="center">
       <img src="assets/preview-shelf.png" alt="Notch Drag-and-Drop File Shelf" />
       <br /><sub><b>Notch Shelf</b> · Native Drag-In / Drag-Out File &amp; Note Staging</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="assets/preview-settings.png" alt="Settings Control Center with Dual Theme Switcher" />
+      <br /><sub><b>Control Center (<code>⚙</code>)</b> · Position, Pill Height, Dual Theme &amp; Toggles</sub>
     </td>
   </tr>
 </table>
@@ -104,11 +115,11 @@ Choose the build that matches your operating system from [**GitHub Releases**](h
 ## Quick Configuration
 
 ### Personalize Your City
-Open the **Setting** tab → enter your city under **Kota BMKG & Sholat Kemenag** (default: `Jakarta`) → click **Terapkan**. It automatically resolves BMKG/Kemenag city codes across Indonesia and falls back to global Open-Meteo geocoding worldwide.
+Open **Setting (`⚙`)** → enter your city under **Kota BMKG & Sholat Kemenag** (default: `Jakarta`) → click **Terapkan**. It automatically resolves BMKG/Kemenag city codes across Indonesia and falls back to global Open-Meteo geocoding worldwide.
 
 ### Google Calendar Setup (10 Seconds)
 All calendar data stays strictly local on your machine:
-1. Open the **Kalender** tab and click **Sambungkan Google Calendar (.ics)** *(or go to **Setting → Ambil Link**)*.
+1. Open the **Kalender** tab and click **Sambungkan Google Calendar (.ics)** *(or go to **Setting (`⚙`) → Ambil Link**)*.
 2. In Google Calendar Settings, choose a calendar → scroll to **Secret address in iCal format** → click **Copy**.
 3. DynotchFlow detects the copied `.ics` URL automatically and syncs your schedule. *(Paste multiple `.ics` URLs separated by commas or spaces to merge work, study, and personal calendars.)*
 
@@ -136,7 +147,8 @@ flowchart LR
     MAIN <--> SVC["services.js<br/>iCal RRULE · BMKG · Kemenag · LRCLIB"]
 ```
 
-- **Zero Background Polling Bloat:** `NotchBridge.exe` halts high-frequency position pushes while paused, and `main.js` caps V8 memory (`--max-old-space-size=48`) with `--in-process-gpu` so idle footprint stays **under 50 MB RAM**.
+- **Zero Background Polling Bloat:** `NotchBridge.exe` halts high-frequency position pushes while paused, `main.js` caps V8 memory (`--max-old-space-size=48`) with `--in-process-gpu`, and automated post-boot/idle working-set trimming keeps settled footprint at **`~23–45 MB` RAM** (`< 50 MB`).
+- **Hardened Localhost IPC (`127.0.0.1:17420`):** Rejects cross-origin browser requests (`Origin`, `OPTIONS`, `Sec-Fetch-Site: cross-site`) with `HTTP 403` so external websites cannot trigger fake local notifications.
 - **Bounded Disk Caches:** Synced lyrics and HD album art caches auto-prune (`max 160` entries) under `%APPDATA%\NotchFlow`.
 
 ---

@@ -255,12 +255,6 @@ public static class Program {
 
     public static void TrimMemoryFootprint() {
         try {
-            GC.Collect(2, GCCollectionMode.Forced, true);
-            GC.WaitForPendingFinalizers();
-            using (Process me = Process.GetCurrentProcess()) {
-                K32EmptyWorkingSet(me.Handle);
-                SetProcessWorkingSetSize(me.Handle, new IntPtr(-1), new IntPtr(-1));
-            }
             foreach (string pName in new string[] { "DynotchFlow", "NotchFlow", "electron" }) {
                 Process[] procs = Process.GetProcessesByName(pName);
                 foreach (Process p in procs) {
@@ -271,6 +265,12 @@ public static class Program {
                         p.Dispose();
                     }
                 }
+            }
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            GC.WaitForPendingFinalizers();
+            using (Process me = Process.GetCurrentProcess()) {
+                K32EmptyWorkingSet(me.Handle);
+                SetProcessWorkingSetSize(me.Handle, new IntPtr(-1), new IntPtr(-1));
             }
         } catch {}
     }
@@ -295,7 +295,6 @@ public static class Program {
     }
 
     private static T AwaitWinRT<T>(Windows.Foundation.IAsyncOperation<T> op, int timeoutMs = 1500) {
-        InitWinRT:
         InitWinRtHelpers();
         var m = asTaskGeneric.MakeGenericMethod(typeof(T));
         var task = (System.Threading.Tasks.Task<T>)m.Invoke(null, new object[] { op });
@@ -396,7 +395,7 @@ public static class Program {
 
         while (true) {
             trimTick++;
-            if (!isNotchExpanded && (trimTick == 3 || trimTick == 10 || trimTick % 55 == 0)) {
+            if (!isNotchExpanded && (trimTick == 3 || trimTick == 10 || trimTick % 40 == 0)) {
                 TrimMemoryFootprint();
             }
 
@@ -477,7 +476,7 @@ public static class Program {
                     double dur = tl != null ? Math.Max(0.0, (tl.EndTime - tl.StartTime).TotalSeconds) : 0.0;
 
                     propTick++;
-                    bool needMeta = forceMetaRefresh || string.IsNullOrEmpty(cachedTitle) || (appId != cachedAppId) || (Math.Abs(dur - cachedDur) > 1.5) || (propTick % 10 == 0);
+                    bool needMeta = forceMetaRefresh || string.IsNullOrEmpty(cachedTitle) || (appId != cachedAppId) || (Math.Abs(dur - cachedDur) > 1.5) || (statusStr == "Playing" ? propTick % 15 == 0 : propTick % 30 == 0);
                     string thumbOut = null;
                     if (needMeta) {
                         var props = AwaitWinRT(s.TryGetMediaPropertiesAsync(), 900);

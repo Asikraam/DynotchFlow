@@ -155,8 +155,45 @@ function cleanTrackInfo(rawTitle, rawArtist) {
   return { title, artist, baseTitle, baseArtist, tempoKind, altSwapped };
 }
 
-function parseLrc(lrcText) {
+function isLrcCreditOrTitleEcho(text, tSec, titleHint, artistHint) {
+  const clean = String(text || '').trim();
+  if (!clean) return true;
+  if (/^(?:lyrics?|lirik|words?|text|music|composed|composer|arranged|arranger|arrangement|producer|produced|mixed|mastered|vocal|vocals|singer|artist|performer|album|writer|written|作词|作曲|编曲|演唱|制作|混音|歌词|制作人|发行)\s*(?:by)?\s*[:：]/i.test(clean)) {
+    return true;
+  }
+  if (tSec <= 8.5) {
+    const fold = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const fc = fold(clean);
+    const ft = fold(titleHint);
+    const fa = fold(artistHint);
+    if (fc && ft && (fc === ft || fc === fa + ft || fc === ft + fa)) return true;
+    if (fc && ft && clean.includes(' - ') && fc.includes(ft) && (!fa || fc.includes(fa))) return true;
+  }
+  return false;
+}
+
+function isInstrumentalCue(text) {
+  const clean = String(text || '').trim();
+  if (!clean) return true;
+  if (/^[♪♫♬♩🎵🎶•·…\-\s.~_*\/\\|()[\]]+$/.test(clean)) return true;
+  const isBracketed = (/^\[.*\]$/.test(clean) || /^\(.*\)$/.test(clean));
+  const inner = clean.replace(/^[\[(<\s♪♫♬♩🎵🎶~*\-]+|[\])>\s♪♫♬♩🎵🎶~*\-]+$/g, '').trim();
+  if (!inner) return true;
+  if (isBracketed) {
+    return /^(?:(?:instrumental|instr\.?|musik|music|interlude|guitar|piano|keyboard|synth|bass|drum|violin|sax(?:ophone)?|flute|cello|trumpet|acoustic|electric|orchestra|intro|outro|break|bridge|pause|solo|fade\s*out|end)(?:\s+(?:solo|break|intro|outro|interlude|part|section|musik|music))?)$/i.test(inner);
+  }
+  return /^(?:instrumental(?:\s+(?:solo|break|intro|outro|interlude))?|interlude|(?:guitar|piano|keyboard|synth|bass|drum|violin|sax(?:ophone)?|flute|cello|trumpet|acoustic)\s+solo|musik|fade\s*out)$/i.test(inner);
+}
+
+function parseLrc(lrcText, titleHint = '', artistHint = '') {
   if (!lrcText || typeof lrcText !== 'string') return [];
+  let offsetSec = 0;
+  const offMatch = lrcText.match(/\[offset\s*:\s*([+-]?\d+)\s*\]/i);
+  if (offMatch) {
+    const ms = Number(offMatch[1]);
+    if (Number.isFinite(ms)) offsetSec = Math.max(-10, Math.min(10, ms / 1000));
+  }
+
   const lines = [];
   const rowRe = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
   for (const rawLine of lrcText.split(/\r?\n/)) {
@@ -168,13 +205,19 @@ function parseLrc(lrcText) {
       const secs = parseInt(match[2], 10);
       const msRaw = match[3] || '0';
       const ms = msRaw.length === 3 ? parseInt(msRaw, 10) / 1000 : msRaw.length === 2 ? parseInt(msRaw, 10) / 100 : parseInt(msRaw, 10) / 10;
-      times.push(mins * 60 + secs + ms);
+      times.push(Math.max(0, mins * 60 + secs + ms - offsetSec));
     }
     if (times.length === 0) continue;
-    const text = rawLine.replace(/\[[^\]]+\]/g, '').trim();
-    if (!text) continue;
+    const text = rawLine
+      .replace(/\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\]/g, '')
+      .replace(/\[(?:ti|ar|al|au|by|offset|length|re|ve|id|total):[^\]]*\]/gi, '')
+      .replace(/<\d{1,3}:\d{2}(?:[.:]\d{1,3})?>/g, '')
+      .trim();
+    const isInstr = !text || isInstrumentalCue(text);
+    const outText = text || '♪';
     for (const t of times) {
-      lines.push({ time: Number(t.toFixed(3)), text });
+      if (!isInstr && isLrcCreditOrTitleEcho(outText, t, titleHint, artistHint)) continue;
+      lines.push(isInstr ? { time: Number(t.toFixed(3)), text: outText, isBreak: true } : { time: Number(t.toFixed(3)), text: outText });
     }
   }
   lines.sort((a, b) => a.time - b.time);
@@ -230,67 +273,6 @@ function titleSim(a, b) {
   let inter = 0;
   for (const t of sa) if (sb.has(t)) inter++;
   return inter / Math.max(sa.size, sb.size);
-}
-
-function makeSyncKey(rawTitle, durationSec = 0) {
-  const clean = String(rawTitle || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 72);
-  const durBucket = durationSec > 10 ? Math.round(Number(durationSec) / 5) * 5 : 0;
-  return crypto.createHash('sha1').update(`${clean}|${durBucket}`).digest('hex').slice(0, 20);
-}
-
-function getSyncMapPath(cacheDir) {
-  if (!cacheDir) return '';
-  return path.join(path.dirname(cacheDir), 'lyrics-sync.json');
-}
-
-function loadLyricSyncMap(cacheDir) {
-  try {
-    const file = getSyncMapPath(cacheDir);
-    if (!file || !fs.existsSync(file)) return {};
-    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function getLyricSync(cacheDir, syncKey) {
-  if (!cacheDir || !syncKey) return null;
-  const map = loadLyricSyncMap(cacheDir);
-  const item = map[syncKey];
-  return item && typeof item === 'object' ? item : null;
-}
-
-function saveLyricSync(cacheDir, payload) {
-  try {
-    const file = getSyncMapPath(cacheDir);
-    if (!file || !payload || !payload.syncKey) return null;
-    const map = loadLyricSyncMap(cacheDir);
-    if (payload.reset) {
-      delete map[payload.syncKey];
-    } else {
-      const cleanAnchor = (payload.anchor1 && Number.isFinite(Number(payload.anchor1.vid)) && Number.isFinite(Number(payload.anchor1.lrc)))
-        ? { vid: Number(Number(payload.anchor1.vid).toFixed(3)), lrc: Number(Number(payload.anchor1.lrc).toFixed(3)) }
-        : null;
-      const scaleVal = Number(payload.scale);
-      map[payload.syncKey] = {
-        offsetSec: Number(Number(payload.offsetSec || 0).toFixed(2)),
-        scale: (Number.isFinite(scaleVal) && scaleVal >= 0.78 && scaleVal <= 1.28) ? Number(scaleVal.toFixed(3)) : 1.0,
-        anchor1: cleanAnchor,
-        updatedAt: Date.now()
-      };
-      const keys = Object.keys(map);
-      if (keys.length > 200) {
-        keys.sort((a, b) => (map[b].updatedAt || 0) - (map[a].updatedAt || 0));
-        for (let i = 200; i < keys.length; i++) delete map[keys[i]];
-      }
-    }
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(map), 'utf8');
-    return map[payload.syncKey] || null;
-  } catch {
-    return null;
-  }
 }
 
 async function resolveCanonicalViaItunes(artist, title) {
@@ -378,24 +360,26 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   const { title, artist, baseTitle, baseArtist, tempoKind, altSwapped } = cleanTrackInfo(rawTitle, rawArtist);
   const queryTitle = baseTitle || title;
   const queryArtist = baseArtist || artist;
-  const syncKey = makeSyncKey(rawTitle || queryTitle, durationSec);
   const isLiveTrack = tempoKind === 'live';
-  if (!queryTitle) return { found: false, lines: [], plain: [], title, artist, isLiveTrack, syncKey, savedSync: null };
+  const isLongMultiSongTitle = /\b(?:full\s*(?:concert|konser|album|set|show|live\s*set)|setlist|medley|non[\s-]?stop|mega[\s-]?mix|mixtape|compilations?|kompilasi|\d+\s*(?:jam|hour|hr)s?|playlist)\b/i.test(`${rawTitle || ''} ${album || ''}`);
+  if (Number(durationSec) > 900 || isLongMultiSongTitle) {
+    return { cacheV: 4, found: false, synced: false, lines: [], plain: [], isMultiSongLongVideo: true, tempoKind, isLiveTrack, title, artist };
+  }
+  if (!queryTitle) return { cacheV: 4, found: false, synced: false, lines: [], plain: [], tempoKind, isLiveTrack, title, artist };
 
-  const cacheKey = crypto.createHash('sha1').update(`v3|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}`).digest('hex');
+  const cacheKey = crypto.createHash('sha1').update(`v4|${queryTitle.toLowerCase()}|${queryArtist.toLowerCase()}`).digest('hex');
   const cacheFile = path.join(cacheDir, `${cacheKey}.json`);
   try {
     if (fs.existsSync(cacheFile)) {
       const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-      if (cached && cached.cacheV === 3 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
+      if (cached && cached.cacheV === 4 && ((cached.lines && cached.lines.length > 0) || (cached.plain && cached.plain.length > 0))) {
         return {
           ...cached,
           title: cached.trackName || queryTitle,
           artist: cached.artistName || queryArtist,
           tempoKind,
           isLiveTrack,
-          syncKey,
-          savedSync: getLyricSync(cacheDir, syncKey),
+          rawTitle: String(rawTitle || ''),
           fromCache: true
         };
       }
@@ -528,14 +512,14 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
     } catch {}
   }
 
-  const lines = picked && picked.syncedLyrics ? parseLrc(picked.syncedLyrics) : [];
+  const resolvedTitle = (picked && picked.trackName) || queryTitle;
+  const resolvedArtist = (picked && picked.artistName) || queryArtist;
+  const lines = picked && picked.syncedLyrics ? parseLrc(picked.syncedLyrics, resolvedTitle, resolvedArtist) : [];
   const plain = picked && picked.plainLyrics
     ? picked.plainLyrics.split(/\r?\n/).filter(Boolean)
     : plainFallback;
-  const resolvedTitle = (picked && picked.trackName) || queryTitle;
-  const resolvedArtist = (picked && picked.artistName) || queryArtist;
   const result = {
-    cacheV: 3,
+    cacheV: 4,
     found: lines.length > 0 || plain.length > 0,
     synced: lines.length > 0,
     lines,
@@ -543,8 +527,7 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
     sourceDuration: Number((picked && picked.duration) || 0),
     tempoKind: tempoKind || null,
     isLiveTrack,
-    syncKey,
-    savedSync: getLyricSync(cacheDir, syncKey),
+    rawTitle: String(rawTitle || ''),
     trackName: resolvedTitle,
     artistName: resolvedArtist,
     title: resolvedTitle,
@@ -554,8 +537,7 @@ async function fetchLyrics(rawTitle, rawArtist, album, durationSec, cacheDir) {
   if (result.found) {
     try {
       const toCache = { ...result };
-      delete toCache.savedSync;
-      delete toCache.syncKey;
+      delete toCache.rawTitle;
       fs.mkdirSync(cacheDir, { recursive: true });
       fs.writeFileSync(cacheFile, JSON.stringify(toCache));
       pruneCacheDir(cacheDir, 160);
@@ -1249,9 +1231,6 @@ module.exports = {
   parseLrc,
   parseIcs,
   fetchLyrics,
-  saveLyricSync,
-  getLyricSync,
-  makeSyncKey,
   fetchAlbumArtHD,
   fetchWeather,
   geocodeCity,

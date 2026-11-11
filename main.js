@@ -98,6 +98,7 @@ const WIN_H = 380;
 const WEBHOOK_PORT = 17420;
 
 const DEFAULT_CONFIG = {
+  theme: 'normal',
   pillHeight: 34,          // Alcove/NotchNook 32-36px sweet spot for 1080p
   offsetX: 0,              // 0 = top-center flush
   autoHideTopEdge: false,  // Hide completely above top bezel until cursor touches top edge
@@ -200,6 +201,7 @@ function loadState() {
   const savedCfg = loadJson(CONFIG_PATH, {});
   delete savedCfg.togglToken;
   config = { ...DEFAULT_CONFIG, ...savedCfg };
+  config.theme = config.theme === 'matte' ? 'matte' : 'normal';
   if (!Array.isArray(config.customFeeds) || config.customFeeds.length === 0) {
     config.customFeeds = DEFAULT_CONFIG.customFeeds;
   }
@@ -472,6 +474,7 @@ async function handleMediaMessage(msg) {
         sendToRenderer('bridge:lyrics', { found: false, lines: [], plain: [] });
       }
     }
+    setTimeout(() => { if (!isExpanded) requestMemoryTrim(); }, 1800);
   }
 }
 
@@ -551,6 +554,12 @@ function sendBridgeCommand(cmd) {
 function startWebhookServer() {
   httpServer = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Vary', 'Origin');
+    if (req.headers.origin || req.method === 'OPTIONS' || req.headers['sec-fetch-site'] === 'cross-site') {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ ok: false, error: 'Cross-origin browser requests blocked' }));
+      return;
+    }
     if (req.method === 'GET' && req.url === '/health') {
       res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.0' }));
       return;
@@ -728,7 +737,7 @@ function createWindow() {
     if (win && !win.isDestroyed() && !isHiddenManual) {
       win.setAlwaysOnTop(true, 'screen-saver');
     }
-  }, 4000);
+  }, 8000);
 }
 
 function createTray() {
@@ -864,6 +873,7 @@ function setupIpc() {
       partial.customFeeds !== undefined
     );
     config = { ...config, ...partial };
+    config.theme = config.theme === 'matte' ? 'matte' : 'normal';
     if (cityChanged) {
       try {
         const geo = await services.geocodeCity(config.city);
@@ -1050,14 +1060,6 @@ function setupIpc() {
     return externalState.calendar;
   });
 
-  ipcMain.handle('notch:save-lyric-sync', async (_e, payload) => {
-    const saved = services.saveLyricSync(LYRICS_CACHE, payload);
-    if (lastLyricsResult && payload && lastLyricsResult.syncKey === payload.syncKey) {
-      lastLyricsResult = { ...lastLyricsResult, savedSync: saved };
-    }
-    return saved;
-  });
-
   ipcMain.handle('notch:test-webhook', async () => {
     sendToRenderer('bridge:toast', {
       title: 'Webhook Push OK',
@@ -1094,6 +1096,12 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Alt+H', toggleAutoHideTop);
   globalShortcut.register('Alt+H', toggleAutoHideTop);
   screen.on('display-metrics-changed', positionWindow);
+
+  // Auto-trim cold startup/GPU working-set pages so Task Manager stays < 50 MB RAM idle
+  setTimeout(() => { if (!isExpanded) requestMemoryTrim(); }, 3000);
+  setTimeout(() => { if (!isExpanded) requestMemoryTrim(); }, 9000);
+  setTimeout(() => { if (!isExpanded) requestMemoryTrim(); }, 18000);
+  setInterval(() => { if (!isExpanded) requestMemoryTrim(); }, 30 * 1000);
 
   // Refresh weather, prayer, calendar, custom feeds every 5 minutes
   setInterval(refreshExternalData, 5 * 60 * 1000);

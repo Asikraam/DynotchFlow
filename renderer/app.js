@@ -51,11 +51,8 @@ let hudTimer = null;
 let hoverEnterTimer = null;
 let hoverLeaveTimer = null;
 let activeLyricIdx = -1;
+let lastPassedLyricIdx = -1;
 let lastPillText = '';
-let lyricOffsetSec = 0;
-let tapSyncMode = false;
-let syncAnchor1 = null;
-let liveTempoScale = 1.0;
 
 const DEFAULT_VINYL_ART = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
@@ -371,7 +368,8 @@ function syncWindowShape() {
     }
     return;
   }
-  const rad = isExpanded ? 24 : (isSchedAlertActive ? 20 : Math.round((Number(config.pillHeight) || 34) / 2));
+  const isMatte = config.theme === 'matte';
+  const rad = isExpanded ? (isMatte ? 20 : 24) : (isSchedAlertActive ? 20 : Math.round((Number(config.pillHeight) || 34) / 2));
   const key = `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.bottom)},${rad}`;
   if (key !== lastShapeKey) {
     lastShapeKey = key;
@@ -437,7 +435,9 @@ function syncNotchClass() {
   if (shell.dataset.size !== String(pillH)) {
     shell.dataset.size = String(pillH);
   }
-  const sig = `${targetState}|${hideFs}|${hideTop}|${pillH}`;
+  const isMatte = config.theme === 'matte';
+  shell.classList.toggle('theme-matte', isMatte);
+  const sig = `${targetState}|${hideFs}|${hideTop}|${pillH}|${isMatte ? 'matte' : 'normal'}`;
   if (sig !== prevStateSignature) {
     prevStateSignature = sig;
     shell.classList.remove('state-idle', 'state-idle-event', 'state-media', 'state-hud', 'state-sched-alert', 'state-expanded');
@@ -447,10 +447,10 @@ function syncNotchClass() {
 }
 
 function scrollActiveLyricIntoView(instant = false) {
-  if (activeLyricIdx < 0) return;
+  const focusIdx = activeLyricIdx >= 0 ? activeLyricIdx : lastPassedLyricIdx;
+  if (focusIdx < 0) return;
   const pane = document.getElementById('lyrics-pane');
-  const domLines = document.querySelectorAll('#lyrics-list .lyric-line');
-  const activeEl = domLines[activeLyricIdx];
+  const activeEl = cachedLyricNodes[focusIdx];
   if (!pane || !activeEl) return;
   const targetTop = activeEl.offsetTop - (pane.clientHeight / 2) + (activeEl.clientHeight / 2);
   pane.scrollTo({ top: Math.max(0, targetTop), behavior: instant ? 'auto' : 'smooth' });
@@ -640,9 +640,9 @@ function renderWavyFrame() {
   const xEnd = cssW - pad;
   const xCur = xStart + (xEnd - xStart) * frac;
 
-  const accentRgb = document.documentElement.style.getPropertyValue('--accent-rgb').trim()
-    || getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()
-    || '76, 201, 240';
+  const isMatteTheme = shell && shell.classList.contains('theme-matte');
+  const cs = getComputedStyle(shell || document.documentElement);
+  const accentRgb = cs.getPropertyValue('--accent-rgb').trim() || '76, 201, 240';
 
   // Unplayed right track
   ctx.beginPath();
@@ -666,8 +666,8 @@ function renderWavyFrame() {
     ctx.strokeStyle = `rgb(${accentRgb})`;
     ctx.lineWidth = isHoveringScrubber ? 2.8 : 2.2;
     ctx.lineCap = 'round';
-    ctx.shadowColor = `rgba(${accentRgb}, 0.55)`;
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = isMatteTheme ? 'transparent' : `rgba(${accentRgb}, 0.55)`;
+    ctx.shadowBlur = isMatteTheme ? 0 : 6;
     ctx.stroke();
     ctx.shadowBlur = 0;
   }
@@ -758,9 +758,9 @@ function renderLyricsList() {
   const listEl = document.getElementById('lyrics-list');
   const statusEl = document.getElementById('lyrics-status');
   listEl.innerHTML = '';
-  listEl.classList.toggle('tap-mode', tapSyncMode);
   cachedLyricNodes = [];
   activeLyricIdx = -1;
+  lastPassedLyricIdx = -1;
 
   if (lyricsState.loading) {
     statusEl.textContent = 'Mencari lirik sinkron...';
@@ -768,28 +768,24 @@ function renderLyricsList() {
     return;
   }
 
-  if (lyricsState.lines && lyricsState.lines.length > 0) {
+  const lines = lyricsState.lines || [];
+  const hasVisibleLines = lines.some(l => l && !l.isBreak);
+  if (hasVisibleLines) {
     statusEl.classList.add('hidden');
     const frag = document.createDocumentFragment();
-    lyricsState.lines.forEach((line, idx) => {
+    lines.forEach((line) => {
+      if (!line || line.isBreak) {
+        cachedLyricNodes.push(null);
+        return;
+      }
       const div = document.createElement('div');
       div.className = 'lyric-line';
       div.textContent = line.text;
-      div.dataset.idx = String(idx);
-      div.title = 'Klik: Lompat ke bagian ini | Klik kanan / Alt+Klik: Pas-in lirik di detik sekarang';
-      div.addEventListener('click', (e) => {
-        if (tapSyncMode || e.altKey) {
-          e.preventDefault();
-          e.stopPropagation();
-          snapLyricToLine(line.time);
-          return;
-        }
-        window.notchApi.mediaAction('seek', videoTimeForLrc(line.time));
-      });
-      div.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        snapLyricToLine(line.time);
+      div.title = 'Klik untuk lompat ke bagian ini';
+      div.addEventListener('click', () => {
+        const dur = Math.max(0, mediaState.duration || 0);
+        const scale = getLyricTempoScale(dur);
+        window.notchApi.mediaAction('seek', Math.max(0, line.time / Math.max(0.5, scale)));
       });
       frag.appendChild(div);
       cachedLyricNodes.push(div);
@@ -806,8 +802,11 @@ function renderLyricsList() {
       cachedLyricNodes.push(div);
     });
     listEl.appendChild(frag);
+  } else if (lyricsState.isMultiSongLongVideo) {
+    statusEl.textContent = 'Video konser / mix panjang — lirik otomatis aktif saat memutar lagu satuan.';
+    statusEl.classList.remove('hidden');
   } else {
-    statusEl.textContent = mediaState.active ? 'Lirik sinkron belum ditemukan untuk video ini.' : '';
+    statusEl.textContent = mediaState.active ? 'Lirik sinkron belum ditemukan untuk lagu ini.' : '';
     statusEl.classList.remove('hidden');
   }
 }
@@ -824,204 +823,54 @@ function currentPlaybackPos() {
 
 function getLyricTempoScale(durSec) {
   const srcDur = Number(lyricsState.sourceDuration || 0);
+  if (srcDur <= 20 || durSec <= 20) return 1.0;
   const kind = lyricsState.tempoKind;
-  if (!kind || srcDur <= 20 || durSec <= 20) return 1.0;
   const ratio = srcDur / durSec;
-  if (kind === 'slowed' && ratio >= 0.62 && ratio <= 0.97) return ratio;
-  if (kind === 'spedup' && ratio >= 1.03 && ratio <= 1.48) return ratio;
+  if (kind === 'slowed' && ratio >= 0.58 && ratio <= 0.98) return ratio;
+  if (kind === 'spedup' && ratio >= 1.02 && ratio <= 1.55) return ratio;
+  const rawTitle = `${lyricsState.rawTitle || mediaState.title || ''} ${mediaState.artist || ''}`;
+  if (!lyricsState.isLiveTrack && Math.abs(srcDur - durSec) > 10 && ratio >= 0.72 && ratio <= 1.38 &&
+      /\b(?:dj|remix|mashup|koplo|edit|mix|version|ver\.?|nightcore|slow|fast|speed|reverb)\b/i.test(rawTitle)) {
+    return ratio;
+  }
   return 1.0;
 }
 
-function computeSyncPos(pos, dur) {
-  if (syncAnchor1) {
-    return Math.max(0, syncAnchor1.lrc + (pos - syncAnchor1.vid) * liveTempoScale + lyricOffsetSec);
+function resolveVocalLyricState(lines, syncPos) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return { activeIdx: -1, passedIdx: -1, endT: 0 };
   }
-  return Math.max(0, pos * getLyricTempoScale(dur) + lyricOffsetSec);
-}
-
-function videoTimeForLrc(lineTime) {
-  if (syncAnchor1) {
-    return Math.max(0, syncAnchor1.vid + (lineTime - syncAnchor1.lrc - lyricOffsetSec) / Math.max(0.5, liveTempoScale));
+  let cand = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (syncPos + 0.35 >= lines[i].time) cand = i;
+    else break;
   }
-  const dur = Math.max(0, mediaState.duration || 0);
-  return Math.max(0, (lineTime - lyricOffsetSec) / Math.max(0.5, getLyricTempoScale(dur)));
-}
-
-function getEffectiveSyncOffset() {
-  return syncAnchor1 ? (syncAnchor1.lrc - syncAnchor1.vid + lyricOffsetSec) : lyricOffsetSec;
-}
-
-function persistCurrentSync(reset = false) {
-  if (!lyricsState || !lyricsState.syncKey) return;
-  window.notchApi.saveLyricSync?.({
-    syncKey: lyricsState.syncKey,
-    reset: Boolean(reset),
-    offsetSec: lyricOffsetSec,
-    scale: liveTempoScale,
-    anchor1: syncAnchor1
-  }).catch(() => {});
-}
-
-function applySavedSync(saved) {
-  tapSyncMode = false;
-  if (saved && typeof saved === 'object') {
-    lyricOffsetSec = Number(saved.offsetSec) || 0;
-    liveTempoScale = (saved.scale >= 0.78 && saved.scale <= 1.28) ? Number(saved.scale) : 1.0;
-    syncAnchor1 = (saved.anchor1 && Number.isFinite(Number(saved.anchor1.vid)) && Number.isFinite(Number(saved.anchor1.lrc)))
-      ? { vid: Number(saved.anchor1.vid), lrc: Number(saved.anchor1.lrc) }
-      : null;
+  if (cand < 0) {
+    return { activeIdx: -1, passedIdx: -1, endT: 0 };
+  }
+  if (lines[cand].isBreak) {
+    return { activeIdx: -1, passedIdx: cand, endT: 0 };
+  }
+  const curLine = lines[cand];
+  const nextLine = lines[cand + 1];
+  const estDur = Math.max(4.0, Math.min(8.5, 2.8 + (curLine.text || '').length * 0.11));
+  let naturalEnd;
+  if (nextLine && nextLine.isBreak) {
+    naturalEnd = Math.min(nextLine.time, curLine.time + Math.max(estDur, 8.5));
+  } else if (!nextLine || (nextLine.time - curLine.time) >= 10.0) {
+    naturalEnd = curLine.time + estDur;
   } else {
-    lyricOffsetSec = 0;
-    liveTempoScale = 1.0;
-    syncAnchor1 = null;
+    naturalEnd = nextLine.time;
   }
+  if ((syncPos + 0.25) > naturalEnd) {
+    return { activeIdx: -1, passedIdx: cand, endT: naturalEnd };
+  }
+  return {
+    activeIdx: cand,
+    passedIdx: cand,
+    endT: Math.min(naturalEnd, curLine.time + 7.5)
+  };
 }
-
-function resetLyricSync() {
-  tapSyncMode = false;
-  lyricOffsetSec = 0;
-  liveTempoScale = 1.0;
-  syncAnchor1 = null;
-  activeLyricIdx = -1;
-  persistCurrentSync(true);
-  updateLyricSyncLabel();
-}
-
-function snapLyricToLine(lineTime) {
-  const pos = currentPlaybackPos();
-  const targetLrc = Number(lineTime) || 0;
-  if (syncAnchor1) {
-    const dVid = pos - syncAnchor1.vid;
-    const dLrc = targetLrc - syncAnchor1.lrc;
-    if (Math.abs(dVid) >= 20 && Math.sign(dVid) * dLrc > 12) {
-      const rawScale = dLrc / dVid;
-      if (rawScale >= 0.78 && rawScale <= 1.28) {
-        liveTempoScale = Number(rawScale.toFixed(3));
-        lyricOffsetSec = 0;
-        tapSyncMode = false;
-        activeLyricIdx = -1;
-        persistCurrentSync(false);
-        updateLyricSyncLabel();
-        return;
-      }
-    }
-  }
-  syncAnchor1 = { vid: Number(pos.toFixed(2)), lrc: Number(targetLrc.toFixed(2)) };
-  liveTempoScale = 1.0;
-  lyricOffsetSec = 0;
-  tapSyncMode = false;
-  activeLyricIdx = -1;
-  persistCurrentSync(false);
-  updateLyricSyncLabel();
-}
-
-function nudgeLyricOffset(deltaSec) {
-  lyricOffsetSec = Math.max(-180, Math.min(180, Math.round((lyricOffsetSec + deltaSec) * 10) / 10));
-  activeLyricIdx = -1;
-  persistCurrentSync(false);
-  updateLyricSyncLabel();
-}
-
-function updateLyricSyncLabel() {
-  const row = document.getElementById('lyric-sync-row');
-  const tapBtn = document.getElementById('btn-sync-tap');
-  const bannerEl = document.getElementById('lyrics-tap-banner');
-  const bannerMsg = document.getElementById('lyrics-tap-msg');
-  const resetMiniBtn = document.getElementById('btn-sync-reset');
-  const listEl = document.getElementById('lyrics-list');
-  if (!row || !tapBtn) return;
-
-  const hasSynced = Boolean(lyricsState.found && lyricsState.lines && lyricsState.lines.length > 0);
-  row.classList.toggle('hidden', !hasSynced);
-  if (listEl) listEl.classList.toggle('tap-mode', tapSyncMode);
-
-  if (!hasSynced) {
-    if (bannerEl) bannerEl.classList.add('hidden');
-    return;
-  }
-
-  const autoScale = getLyricTempoScale(Math.max(0, mediaState.duration || 0));
-  const activeScale = syncAnchor1 ? liveTempoScale : autoScale;
-  const eff = getEffectiveSyncOffset();
-  const isCalibrated = Boolean(syncAnchor1 || lyricOffsetSec !== 0 || activeScale !== 1.0);
-
-  tapBtn.classList.toggle('tap-active', tapSyncMode);
-  tapBtn.classList.toggle('is-calibrated', !tapSyncMode && isCalibrated);
-
-  if (tapSyncMode) {
-    tapBtn.textContent = 'Klik Baris!';
-  } else if (isCalibrated) {
-    const offShort = `${eff >= 0 ? '+' : ''}${Math.abs(eff) >= 10 ? eff.toFixed(0) : eff.toFixed(1)}s`;
-    tapBtn.textContent = activeScale !== 1.0 ? `${activeScale.toFixed(2)}x ${offShort}` : offShort;
-  } else {
-    tapBtn.textContent = 'Pas-in';
-  }
-
-  if (bannerEl && bannerMsg && resetMiniBtn) {
-    if (tapSyncMode) {
-      bannerEl.classList.remove('hidden');
-      bannerMsg.textContent = 'Mode Pas-in: klik baris yg baru mulai dinyanyikan';
-      resetMiniBtn.textContent = 'Batal';
-      resetMiniBtn.classList.remove('hidden');
-    } else if (syncAnchor1) {
-      const offTxt = `${eff >= 0 ? '+' : ''}${eff.toFixed(1)}s`;
-      bannerEl.classList.remove('hidden');
-      bannerMsg.textContent = liveTempoScale !== 1.0
-        ? `Live Tempo ${liveTempoScale.toFixed(2)}x (${offTxt})`
-        : `Sync ${offTxt} · klik kanan baris jika geser`;
-      resetMiniBtn.textContent = 'Reset';
-      resetMiniBtn.classList.remove('hidden');
-    } else if (lyricOffsetSec !== 0) {
-      const offTxt = `${lyricOffsetSec >= 0 ? '+' : ''}${lyricOffsetSec.toFixed(1)}s`;
-      bannerEl.classList.remove('hidden');
-      bannerMsg.textContent = `Sync ${offTxt} · klik kanan baris untuk Pas-in`;
-      resetMiniBtn.textContent = 'Reset';
-      resetMiniBtn.classList.remove('hidden');
-    } else if (lyricsState.isLiveTrack) {
-      bannerEl.classList.remove('hidden');
-      bannerMsg.textContent = 'Video Live: klik kanan / "Pas-in" baris saat vokal masuk';
-      resetMiniBtn.classList.add('hidden');
-    } else {
-      bannerEl.classList.add('hidden');
-    }
-  }
-}
-
-document.getElementById('btn-sync-m5')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  nudgeLyricOffset(-5);
-});
-document.getElementById('btn-sync-minus')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  nudgeLyricOffset(-0.5);
-});
-document.getElementById('btn-sync-plus')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  nudgeLyricOffset(0.5);
-});
-document.getElementById('btn-sync-p5')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  nudgeLyricOffset(5);
-});
-document.getElementById('btn-sync-tap')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  tapSyncMode = !tapSyncMode;
-  updateLyricSyncLabel();
-});
-document.getElementById('btn-sync-tap')?.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  resetLyricSync();
-});
-document.getElementById('btn-sync-reset')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (tapSyncMode && !syncAnchor1 && lyricOffsetSec === 0) {
-    tapSyncMode = false;
-    updateLyricSyncLabel();
-  } else {
-    resetLyricSync();
-  }
-});
 
 // 120ms lyric & timeline interpolation ticker (throttled idle clock & zero ReferenceError)
 let clockSubTick = 0;
@@ -1036,7 +885,7 @@ setInterval(() => {
 
   const pos = currentPlaybackPos();
   const dur = Math.max(0, mediaState.duration || 0);
-  const syncPos = computeSyncPos(pos, dur);
+  const syncPos = pos * getLyricTempoScale(dur);
   if (!isSeeking && isExpanded) {
     timeCurEl.textContent = fmtSec(pos);
     timeTotEl.textContent = isHoveringScrubber
@@ -1046,40 +895,42 @@ setInterval(() => {
   }
 
   const lines = lyricsState.lines || [];
-  let idx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (syncPos + 0.35 >= lines[i].time) idx = i;
-    else break;
-  }
+  const { activeIdx: idx, passedIdx, endT } = resolveVocalLyricState(lines, syncPos);
 
-  // Collapsed pill live lyric text (fallback to clean title — artist)
+  // Collapsed pill holds steady on track metadata during intro, long instrumental solos & outro
   const cleanMeta = cleanTrackDisplay(mediaState.title, mediaState.artist);
-  if (config.lyricsInCollapsedPill !== false && idx >= 0 && lines[idx]) {
+  if (config.lyricsInCollapsedPill !== false && idx >= 0 && lines[idx] && !lines[idx].isBreak) {
     setPillLyricText(lines[idx].text || cleanMeta);
-  } else if (lyricsState.plain && lyricsState.plain.length > 0 && dur > 0) {
-    const pIdx = Math.min(lyricsState.plain.length - 1, Math.floor((pos / dur) * lyricsState.plain.length));
-    setPillLyricText(lyricsState.plain[pIdx] || cleanMeta);
+  } else if (config.lyricsInCollapsedPill !== false && lines.length === 0 && lyricsState.plain && lyricsState.plain.length > 0 && dur > 0) {
+    const introCutoff = Math.min(10, dur * 0.06);
+    const outroCutoff = dur - Math.min(12, dur * 0.07);
+    if (pos < introCutoff || pos > outroCutoff || outroCutoff <= introCutoff) {
+      setPillLyricText(cleanMeta);
+    } else {
+      const pFrac = (pos - introCutoff) / (outroCutoff - introCutoff);
+      const pIdx = Math.min(lyricsState.plain.length - 1, Math.max(0, Math.floor(pFrac * lyricsState.plain.length)));
+      setPillLyricText(lyricsState.plain[pIdx] || cleanMeta);
+    }
   } else {
     setPillLyricText(cleanMeta);
   }
 
   if (idx >= 0 && cachedLyricNodes[idx] && lines[idx]) {
     const startT = lines[idx].time;
-    const endT = (lines[idx + 1] && lines[idx + 1].time > startT)
-      ? Math.min(lines[idx + 1].time, startT + 7.5)
-      : startT + 4.0;
     const pct = Math.max(0, Math.min(100, ((syncPos + 0.35 - startT) / Math.max(0.4, endT - startT)) * 100));
     cachedLyricNodes[idx].style.setProperty('--karaoke-pct', `${pct.toFixed(1)}%`);
   }
 
-  if (idx !== activeLyricIdx && lines.length > 0) {
+  if ((idx !== activeLyricIdx || passedIdx !== lastPassedLyricIdx) && lines.length > 0) {
     activeLyricIdx = idx;
+    lastPassedLyricIdx = passedIdx;
     cachedLyricNodes.forEach((node, i) => {
+      if (!node) return;
       node.classList.toggle('active', i === idx);
-      node.classList.toggle('past', i < idx);
-      node.classList.toggle('near', Math.abs(i - idx) === 1);
+      node.classList.toggle('past', i <= passedIdx && i !== idx);
+      node.classList.toggle('near', idx >= 0 && Math.abs(i - idx) === 1);
     });
-    if (isExpanded) scrollActiveLyricIntoView(false);
+    if (isExpanded && idx >= 0) scrollActiveLyricIntoView(false);
   }
 }, 120);
 
@@ -1136,7 +987,6 @@ function renderMediaUi() {
       document.getElementById('play-ico').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
     }
     document.getElementById('pill-eq').classList.toggle('playing', isPlaying);
-    updateLyricSyncLabel();
 
     if (mediaState.thumbnail !== undefined) {
       const src = mediaState.thumbnail || DEFAULT_VINYL_ART;
@@ -1201,7 +1051,7 @@ function renderExternalUi() {
     applyWeatherSkyTheme(w);
     document.getElementById('idle-weather-icon').innerHTML = weatherIconSvg(w.icon);
     document.getElementById('idle-weather-text').textContent = `${w.temp}°`;
-    document.getElementById('info-city').textContent = w.city || 'Bandung';
+    document.getElementById('info-city').textContent = w.city || 'Jakarta';
     const srcBadge = document.getElementById('info-source-badge');
     if (srcBadge) {
       srcBadge.textContent = w.source || 'BMKG';
@@ -1416,10 +1266,12 @@ function renderShelfUi() {
 function renderSettingsUi() {
   const ox = Number(config.offsetX || 0);
   const pillH = Number(config.pillHeight || 34);
+  const theme = config.theme === 'matte' ? 'matte' : 'normal';
   const sizeChanged = shell && shell.dataset.size !== String(pillH);
   document.documentElement.style.setProperty('--pill-h', `${pillH}px`);
   if (shell) shell.dataset.size = String(pillH);
   document.querySelectorAll('[data-height]').forEach(b => b.classList.toggle('active', Number(b.dataset.height) === pillH));
+  document.querySelectorAll('[data-theme]').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
   if (sizeChanged && typeof lastPillText === 'string' && lastPillText) {
     const remeasure = () => {
       if (!shell || shell.dataset.size !== String(pillH) || !lastPillText) return;
@@ -1451,10 +1303,11 @@ function renderSettingsUi() {
   const chkHoverExp = document.getElementById('chk-hover-expand');
   if (chkHoverExp) chkHoverExp.checked = config.expandOnHover !== false;
 
-  document.getElementById('set-city').value = config.city || 'Bandung';
+  document.getElementById('set-city').value = config.city || 'Jakarta';
   document.getElementById('set-ics').value = config.icsUrl || '';
   updateClockAndAlert();
   syncNotchClass();
+  if (mediaState.active) renderWavyFrame();
 
   const cfgList = document.getElementById('set-feeds-list');
   cfgList.innerHTML = '';
@@ -1692,6 +1545,20 @@ document.querySelectorAll('[data-offset]').forEach(btn => {
 document.querySelectorAll('[data-height]').forEach(btn => {
   btn.addEventListener('click', () => window.notchApi.saveConfig({ pillHeight: Number(btn.dataset.height) }));
 });
+document.querySelectorAll('[data-theme]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const theme = btn.dataset.theme === 'matte' ? 'matte' : 'normal';
+    config.theme = theme;
+    renderSettingsUi();
+    window.notchApi.saveConfig({ theme });
+  });
+});
+document.getElementById('btn-toggle-json-drawer')?.addEventListener('click', () => {
+  const drawer = document.getElementById('set-json-drawer');
+  if (!drawer) return;
+  const nowHidden = drawer.classList.toggle('hidden');
+  if (!nowHidden) drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
 document.getElementById('set-offsetx').addEventListener('input', (e) => {
   const val = Number(e.target.value);
   document.getElementById('lbl-offsetx').textContent = String(val);
@@ -1726,7 +1593,7 @@ document.getElementById('chk-hover-expand')?.addEventListener('change', (e) => {
   window.notchApi.saveConfig({ expandOnHover: e.target.checked });
 });
 document.getElementById('btn-save-city').addEventListener('click', () => {
-  const c = document.getElementById('set-city').value.trim() || 'Bandung';
+  const c = document.getElementById('set-city').value.trim() || 'Jakarta';
   window.notchApi.saveConfig({ city: c });
 });
 document.getElementById('btn-save-ics').addEventListener('click', () => {
@@ -1780,23 +1647,9 @@ window.notchApi.onMediaUpdate((d) => {
   renderMediaUi();
 });
 
-let prevLyricTrackKey = '';
 window.notchApi.onLyricsUpdate((d) => {
   lyricsState = d || { found: false, lines: [], plain: [] };
-  const nextKey = lyricsState.syncKey || `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
-  if (lyricsState.loading) {
-    applySavedSync(null);
-  } else if (!lyricsState.found) {
-    prevLyricTrackKey = '';
-    applySavedSync(null);
-  } else if (nextKey && nextKey !== '|' && nextKey !== prevLyricTrackKey) {
-    prevLyricTrackKey = nextKey;
-    applySavedSync(lyricsState.savedSync);
-  } else if (lyricsState.savedSync) {
-    applySavedSync(lyricsState.savedSync);
-  }
   renderLyricsList();
-  updateLyricSyncLabel();
 });
 
 window.notchApi.onVolumeUpdate((d) => {
@@ -1860,11 +1713,7 @@ window.notchApi.getState().then(s => {
   if (s.external) { externalState = s.external; renderExternalUi(); }
   if (s.lyrics) {
     lyricsState = s.lyrics;
-    const initKey = lyricsState.syncKey || `${lyricsState.title || ''}|${lyricsState.artist || ''}`;
-    if (initKey && initKey !== '|') prevLyricTrackKey = initKey;
-    applySavedSync(lyricsState.savedSync);
     renderLyricsList();
-    updateLyricSyncLabel();
   }
   if (s.media) { mediaState = s.media; renderMediaUi(); }
   updateClockAndAlert();

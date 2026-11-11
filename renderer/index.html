@@ -97,9 +97,6 @@
               <span class="tab-ico" data-ico="shelf"></span><span>Shelf</span>
               <span id="shelf-count" class="badge-count hidden">0</span>
             </button>
-            <button class="tab-btn" data-tab="settings" title="Pengaturan">
-              <span class="tab-ico" data-ico="settings"></span><span>Setting</span>
-            </button>
           </div>
           <div class="header-actions">
             <button id="btn-vol-quick" class="icon-chip" title="Klik: Mute | Scroll: Atur Volume">
@@ -111,6 +108,9 @@
             </button>
             <button id="btn-pin" class="icon-btn" title="Pin panel tetap terbuka">
               <span class="svg-icon" data-ico="pin"></span>
+            </button>
+            <button class="tab-btn icon-only-tab" data-tab="settings" title="Pengaturan">
+              <span class="tab-ico" data-ico="settings"></span>
             </button>
           </div>
         </div>
@@ -142,23 +142,10 @@
                 <button id="btn-play" class="ctrl-btn primary" title="Play / Pause"><span id="play-ico"></span></button>
                 <button id="btn-next" class="ctrl-btn" title="Berikutnya"><span data-ico="next"></span></button>
               </div>
-              <div id="lyric-sync-row" class="lyric-sync-row hidden" title="Kalibrasi sinkronisasi lirik (Live / DJ / Slowed / YouTube) — Klik kanan baris lirik untuk langsung pas!">
-                <button id="btn-sync-m5" class="sync-nudge-btn" title="Mundurkan lirik 5 detik">-5s</button>
-                <button id="btn-sync-minus" class="sync-nudge-btn" title="Mundurkan lirik 0.5 detik">-0.5</button>
-                <button id="btn-sync-tap" class="sync-nudge-lbl" title="Mode Pas-in: klik lalu klik baris lirik yg sedang dinyanyikan (Klik kanan tombol ini = Reset)">Pas-in</button>
-                <button id="btn-sync-plus" class="sync-nudge-btn" title="Majukan lirik 0.5 detik">+0.5</button>
-                <button id="btn-sync-p5" class="sync-nudge-btn" title="Majukan lirik 5 detik">+5s</button>
-              </div>
             </div>
-            <div class="lyrics-col">
-              <div id="lyrics-tap-banner" class="lyrics-tap-banner hidden">
-                <span id="lyrics-tap-msg"></span>
-                <button id="btn-sync-reset" class="sync-reset-mini" title="Reset kalibrasi sinkronisasi">Reset</button>
-              </div>
-              <div class="lyrics-pane" id="lyrics-pane">
-                <div id="lyrics-status" class="lyrics-status">Mencari lirik sinkron...</div>
-                <div id="lyrics-list" class="lyrics-list"></div>
-              </div>
+            <div class="lyrics-pane" id="lyrics-pane">
+              <div id="lyrics-status" class="lyrics-status">Mencari lirik sinkron...</div>
+              <div id="lyrics-list" class="lyrics-list"></div>
             </div>
           </div>
         </div>
@@ -271,7 +258,7 @@
             <div class="set-bento-card">
               <div class="set-row">
                 <div class="set-lbl-group">
-                  <span class="set-title">Posisi & Ukuran Pulau</span>
+                  <span class="set-title">Posisi & Ukuran</span>
                   <span class="set-sub">Offset <strong id="lbl-offsetx">0</strong>px</span>
                 </div>
                 <div class="seg-group">
@@ -283,6 +270,10 @@
                   <button class="seg-btn" data-height="30">30px</button>
                   <button class="seg-btn" data-height="34">34px</button>
                   <button class="seg-btn" data-height="40">40px</button>
+                </div>
+                <div class="seg-group" title="Tema Tampilan Dynamic Island">
+                  <button class="seg-btn active" data-theme="normal">Normal</button>
+                  <button class="seg-btn" data-theme="matte">Matte</button>
                 </div>
               </div>
               <div class="set-slider-row">
@@ -313,7 +304,7 @@
                 <input id="chk-idle-weather" class="ios-switch" type="checkbox" checked />
               </label>
               <label class="toggle-card" title="Tampilkan hitung mundur jadwal sholat di pill">
-                <span>Countdown Sholat</span>
+                <span>Timer Sholat</span>
                 <input id="chk-prayer-cd" class="ios-switch" type="checkbox" checked />
               </label>
               <label class="toggle-card" title="Munculkan banner pengingat 10 & 5 menit sebelum serta saat waktu sholat tiba">
@@ -347,7 +338,7 @@
               </div>
             </div>
 
-            <div class="set-bento-card">
+            <div id="set-json-drawer" class="set-bento-card hidden">
               <span class="set-title">Widget Data Eksternal (JSON API)</span>
               <div id="set-feeds-list" class="feeds-config"></div>
               <div class="ev-row">
@@ -359,8 +350,11 @@
             </div>
 
             <div class="set-footer">
-              <button id="btn-test-hook" class="mini-btn subtle">Tes Push (:17420)</button>
-              <span class="hint-txt">Hide Atas: <strong>Alt+H / Ctrl+Alt+H</strong> · Hide Total: <strong>Ctrl+Alt+N</strong></span>
+              <div class="ev-row" style="gap:5px;">
+                <button id="btn-test-hook" class="mini-btn subtle">Tes Push (:17420)</button>
+                <button id="btn-toggle-json-drawer" class="mini-btn subtle" title="Tampilkan / sembunyikan pengaturan Widget JSON API">+ JSON API</button>
+              </div>
+              <span class="hint-txt">Hide Atas: <strong>Alt+H</strong> · Hide Total: <strong>Ctrl+Alt+N</strong></span>
               <button id="btn-quit" class="mini-btn danger">Keluar</button>
             </div>
           </div>

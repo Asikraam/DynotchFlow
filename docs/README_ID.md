@@ -32,12 +32,12 @@
 
 ## Fitur Utama & Pembaruan Terkini
 
-- **Lirik Sinkron Hybrid (Auto-Center + Marquee):** Baris lirik pendek/sedang tampil rata tengah dengan teks tajam tanpa bayangan tepi; baris lirik panjang otomatis bergeser halus (*marquee*). Ukuran teks, equalizer, dan pill ikut menyesuaikan pilihan tinggi **`30px` / `34px` / `40px`**.
-- **Pencocokan & Kalibrasi Lirik Universal (Konser Live, Fancam, Cover, DJ, YouTube Resmi/Tidak Resmi — Tetap `< 50 MB` RAM):**
-  - Waterfall pencarian multi-sumber (**LRCLIB -> ejaan resmi iTunes -> Kugou LRC -> `lyrics.ovh`**) lengkap dengan pembersih judul `Live at ...`, `Fancam`, `Acoustic Cover`, `Slowed + Reverb`, `Sped Up`, dan `Full Bass`.
-  - Otomatis menghitung **skala tempo linier** pada versi *Slowed* (`~0.85x`) / *Sped-Up* (`~1.25x`), sekaligus menghapus penalti durasi agar lirik studio tetap ketemu walau video konser diawali obrolan / intro panjang.
-  - **1-Tap `"Pas-in"` & Klik Kanan Baris Lirik + Auto-Warp Tempo 2-Titik:** Jika penyanyi mengobrol dulu di awal video live sehingga lirik mendahului vokal, cukup **klik kanan baris lirik** *(atau klik **`Pas-in`** → klik baris)* tepat saat vokal masuk! Kalibrasi ke-2 di tengah lagu otomatis menghitung kecepatan band live (`0.78x–1.28x`), tersimpan permanen per video (`lyrics-sync.json`), plus tombol cepat **`-5s / -0.5 / Pas-in / +0.5 / +5s`**.
-- **Tepi Halus Tanpa Kotak DWM:** Pemotongan wilayah jendela `SetWindowRgn` ber-padding dan strip titlebar win32 menghasilkan sudut lengkung bersih tanpa garis abu-abu di tepi atas.
+- **Dual Tema (`Normal` Glow & `Matte` Minimalist):** Pilih tema **Normal** (cahaya adaptif sampul lagu & efek langit) atau **Matte Minimalist** (`#09090b` / `#121215` bersih tanpa glow) di menu **Setting** (`⚙` pojok kanan atas), lengkap dengan laci `+ JSON API` yang bisa dibuka-tutup.
+- **Lirik Sinkron Hybrid (Auto-Center + Marquee) & Hold Instrumen:** Baris lirik pendek/sedang tampil rata tengah dengan teks tajam tanpa bayangan tepi; baris lirik panjang otomatis bergeser halus (*marquee*). Saat lagu masih intro sebelum vokal, jeda instrumen panjang (`>= 10s` / `[Instrumental]` / `♪`), atau outro, pill otomatis menahan tampilan judul lagu dengan tenang tanpa kedip teks acak.
+- **Auto-Sync Bersih Tanpa Tombol Manual (`~23–45 MB` RAM Idle):**
+  - Waterfall pencarian multi-sumber (**LRCLIB -> ejaan resmi iTunes -> Kugou LRC -> `lyrics.ovh`**) lengkap dengan pembersih tag `Live at ...`, `Fancam`, `Acoustic Cover`, `Slowed + Reverb`, `Sped Up`, dan `Full Bass`.
+  - Otomatis menghitung **skala tempo linier** saat lagu versi *Slowed*, *Sped-Up*, atau remix memiliki selisih durasi wajar, mendukung `[offset:]` LRC, klik baris lirik untuk melompat ke detik lagu, serta penjagaan aman untuk video konser / mix panjang (`> 15 menit`) agar tidak membebani RAM dengan pemrosesan audio/ASR.
+- **Tepi Halus & Keamanan Server Lokal (`:17420`):** Pemotongan wilayah jendela `SetWindowRgn` ber-padding dan strip titlebar win32 menghasilkan sudut lengkung bersih tanpa garis abu-abu, auto-trim RAM otomatis (`~23–40 MB` saat idle), serta endpoint webhook `127.0.0.1:17420` yang menolak permintaan browser lintas situs (*cross-origin* `403`).
 - **Multi-Kalender `.ics`, Cuaca BMKG & Jadwal Sholat Kemenag RI:** Efek langit dinamis (Hujan, Cerah/Senja, Malam), pengingat Adzan & acara mendadak, serta **Shelf Drag-In / Drag-Out** file & catatan.
 
 ---
