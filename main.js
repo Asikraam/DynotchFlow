@@ -110,6 +110,7 @@ const DEFAULT_CONFIG = {
   prayerAdzanAlert: true,
   city: 'Jakarta',
   country: 'Indonesia',
+  countryCode: 'ID',
   weatherLat: -6.2088,
   weatherLon: 106.8456,
   gcalAccount: '',
@@ -155,6 +156,7 @@ let lastLyricsResult = null;
 let lastMediaMsg = null;
 let currentThumb = '';
 let gcalWatchTimer = null;
+let isBrandNewInstall = false;
 
 let externalState = {
   weather: null,
@@ -185,7 +187,8 @@ function ensureDirs() {
 function loadJson(filePath, fallback) {
   try {
     if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const raw = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+      return JSON.parse(raw);
     }
   } catch {}
   return fallback;
@@ -197,6 +200,7 @@ function saveJson(filePath, obj) {
 }
 
 function loadState() {
+  isBrandNewInstall = !fs.existsSync(CONFIG_PATH);
   ensureDirs();
   const savedCfg = loadJson(CONFIG_PATH, {});
   delete savedCfg.togglToken;
@@ -402,10 +406,42 @@ function getTodayDateKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const TZ_CITY_ALIAS = {
+  Calcutta: 'Kolkata',
+  Saigon: 'Ho Chi Minh City',
+  Kiev: 'Kyiv',
+  Rangoon: 'Yangon',
+  Katmandu: 'Kathmandu',
+  Bombay: 'Mumbai',
+  Madras: 'Chennai',
+  Peking: 'Beijing'
+};
+
+async function bootstrapCityFromTimezone() {
+  if (!isBrandNewInstall) return;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (!tz || /^(Etc\/|UTC)/i.test(tz) || /^Asia\/(Jakarta|Pontianak|Makassar|Jayapura)$/i.test(tz)) return;
+    const rawCity = tz.split('/').pop().replace(/_/g, ' ').trim();
+    const cityGuess = TZ_CITY_ALIAS[rawCity] || rawCity;
+    if (!cityGuess) return;
+    const geo = await services.geocodeCity(cityGuess);
+    if (geo && geo.lat != null && geo.lon != null) {
+      config.city = geo.name || cityGuess;
+      config.country = geo.country || '';
+      config.countryCode = geo.countryCode || '';
+      config.weatherLat = geo.lat;
+      config.weatherLon = geo.lon;
+      saveJson(CONFIG_PATH, config);
+      sendToRenderer('bridge:config', config);
+    }
+  } catch {}
+}
+
 async function refreshExternalData(forceRefresh = false) {
   const [weatherRes, prayerRes, calRes, feedsRes] = await Promise.allSettled([
-    services.fetchWeather(config.weatherLat, config.weatherLon, config.city),
-    services.fetchPrayerTimes(config.city, config.country),
+    services.fetchWeather(config.weatherLat, config.weatherLon, config.city, config.countryCode || ''),
+    services.fetchPrayerTimes(config.city, config.country, config.weatherLat, config.weatherLon),
     services.fetchCalendarEvents(config.icsUrl, config.localEvents, config.gcalAccount || '', config.calendars, forceRefresh),
     Promise.all((config.customFeeds || []).map(f => services.fetchCustomFeed(f)))
   ]);
@@ -872,6 +908,9 @@ function setupIpc() {
     ) || (
       partial.customFeeds !== undefined
     );
+    if (partial.icsUrl !== undefined) {
+      partial.icsUrl = String(partial.icsUrl).replace(/webcal:\/\//gi, 'https://').trim();
+    }
     config = { ...config, ...partial };
     config.theme = config.theme === 'matte' ? 'matte' : 'normal';
     if (cityChanged) {
@@ -880,6 +919,8 @@ function setupIpc() {
         if (geo) {
           config.weatherLat = geo.lat;
           config.weatherLon = geo.lon;
+          config.country = geo.country || '';
+          config.countryCode = geo.countryCode || '';
         }
       } catch {}
     }
@@ -891,14 +932,22 @@ function setupIpc() {
     return config;
   });
 
+  function extractIcsClipboardUrl(rawText) {
+    const raw = String(rawText || '').trim().replace(/^webcal:\/\//i, 'https://');
+    if (/^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics(\?.*)?$/i.test(raw)) return raw;
+    if (/^https:\/\/[^\s"'<>]+\.ics(\?[^\s"'<>]*)?$/i.test(raw)) return raw;
+    return '';
+  }
+
   ipcMain.handle('notch:connect-gcal', async () => {
-    const clip = (clipboard.readText() || '').trim();
-    if (/^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics/i.test(clip)) {
-      config.icsUrl = clip;
+    const clipUrl = extractIcsClipboardUrl(clipboard.readText());
+    const currentIcs = String(config.icsUrl || '').trim();
+    if (clipUrl && clipUrl !== currentIcs) {
+      config.icsUrl = clipUrl;
       saveJson(CONFIG_PATH, config);
       sendToRenderer('bridge:config', config);
       await refreshExternalData();
-      return { connected: true, fromClipboard: true, icsUrl: clip };
+      return { connected: true, fromClipboard: true, icsUrl: clipUrl };
     }
     const acct = (config.gcalAccount || '').trim();
     const targetUrl = acct
@@ -915,8 +964,8 @@ function setupIpc() {
         gcalWatchTimer = null;
         return;
       }
-      const curClip = (clipboard.readText() || '').trim();
-      if (/^https:\/\/calendar\.google\.com\/calendar\/ical\/.+\.ics/i.test(curClip) && curClip !== config.icsUrl) {
+      const curClip = extractIcsClipboardUrl(clipboard.readText());
+      if (curClip && curClip !== (config.icsUrl || '').trim()) {
         clearInterval(gcalWatchTimer);
         gcalWatchTimer = null;
         config.icsUrl = curClip;
@@ -924,8 +973,8 @@ function setupIpc() {
         sendToRenderer('bridge:config', config);
         await refreshExternalData();
         sendToRenderer('bridge:toast', {
-          title: 'Google Calendar Linked',
-          body: 'iCal feed connected automatically',
+          title: 'Calendar Linked',
+          body: 'iCal (.ics) feed connected automatically',
           accent: '#38bdf8',
           duration: 4200
         });
@@ -1093,7 +1142,7 @@ app.whenReady().then(() => {
   createTray();
   startMediaVolumeBridge();
   startWebhookServer();
-  refreshExternalData();
+  bootstrapCityFromTimezone().finally(() => refreshExternalData());
 
   globalShortcut.register('CommandOrControl+Alt+N', toggleVisibility);
   globalShortcut.register('CommandOrControl+Alt+H', toggleAutoHideTop);

@@ -2,7 +2,7 @@
   "name": "dynotchflow",
   "productName": "DynotchFlow",
   "version": "1.0.0",
-  "description": "Custom macOS-style Dynamic Island for Windows 11 with synced lyrics, Google Calendar (.ics), BMKG weather, prayer schedule, Notch shelf & native WinRT bridge",
+  "description": "Custom macOS-style Dynamic Island for Windows 11 with synced lyrics, Google Calendar (.ics), global weather & prayer times, Notch shelf & native WinRT bridge",
   "main": "main.js",
   "scripts": {
     "prestart": "node scripts/build-bridge.js",

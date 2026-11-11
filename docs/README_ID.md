@@ -54,12 +54,12 @@ Pilih file sesuai kebutuhan dari halaman [**GitHub Releases**](https://github.co
 
 ## ⚡ Pengaturan Kilat (10 Detik)
 
-- **Atur Kota Cuaca & Jadwal Sholat:**
-  Buka ikon **`⚙` (Settings)** di pojok kanan atas → isi kota pada **City (Weather & Prayer)** *(default: `Jakarta`)* → klik **Apply**. Mendukung **BMKG & Kemenag RI** di seluruh Indonesia serta **Open-Meteo** untuk kota luar negeri.
-- **Sambungkan Google Calendar *(Aman & Lokal di PC)*:**
-  1. Buka tab **Calendar** → klik **Connect Google Calendar (.ics)** *(atau klik **`⚙` → Get Link**)*.
-  2. Di halaman pengaturan Google Calendar yang terbuka, pilih kalendermu → gulir ke **Secret address in iCal format** → klik **Copy**.
-  3. DynotchFlow langsung mendeteksi link dari clipboard dan menampilkan acaramu *(bisa tempel beberapa link `.ics` dipisah koma atau spasi)*.
+- **Atur Kota Cuaca & Jadwal Sholat *(Otomatis Deteksi Zona Waktu Global)*:**
+  Saat pertama kali dijalankan di luar Indonesia, DynotchFlow otomatis mendeteksi kota dari zona waktu Windows pengguna tanpa pelacakan apa pun — langsung memakai **Open-Meteo + AlAdhan MWL** secara global dan **BMKG + Kemenag RI** di seluruh Indonesia. Kamu juga bisa mengubah kota kapan saja lewat **`⚙` (Settings)** → isi **City (Weather & Prayer)** → **Apply**.
+- **Sambungkan Google Calendar *(100% Aman, Terisolasi & Lokal di PC Sendiri)*:**
+  1. Buka tab **Calendar** → klik **Connect Google Calendar (.ics)** *(atau **`⚙` → Get Link**)*.
+  2. Browser bawaan akan membuka halaman pengaturan Google Calendar milik **akun Google pengguna itu sendiri** *(tanpa akun/kredensial terpasang di repo)*. Pilih kalendermu → gulir ke **Secret address in iCal format** → klik **Copy**.
+  3. DynotchFlow langsung mendeteksi link dari clipboard dan sinkron otomatis tiap 5 menit *(mendukung Google `.ics`, `webcal://` Outlook/iCloud, banyak link sekaligus, serta acara offline `+ Event`)*.
 
 ---
 

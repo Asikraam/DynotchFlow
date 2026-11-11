@@ -1634,13 +1634,16 @@ document.getElementById('btn-save-city').addEventListener('click', () => {
   window.notchApi.saveConfig({ city: c });
 });
 document.getElementById('btn-save-ics').addEventListener('click', () => {
-  window.notchApi.saveConfig({ icsUrl: document.getElementById('set-ics').value.trim() });
+  const cleanUrl = document.getElementById('set-ics').value.replace(/webcal:\/\//gi, 'https://').trim();
+  window.notchApi.saveConfig({ icsUrl: cleanUrl });
 });
 
 async function handleGcalConnect() {
   const res = await window.notchApi.connectGoogleCalendar();
   if (res && res.connected) {
-    flashHud(ICONS.calendar, 'GCal Linked', 100, 2400);
+    flashHud(ICONS.calendar, 'Calendar Linked', 100, 2400);
+  } else if (res && res.openedBrowser) {
+    flashHud(ICONS.calendar, 'Copy .ics Link in Browser', 100, 3200);
   }
 }
 document.getElementById('btn-connect-gcal')?.addEventListener('click', handleGcalConnect);

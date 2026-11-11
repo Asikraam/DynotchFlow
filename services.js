@@ -683,9 +683,13 @@ function parseBmkgTimeMs(s) {
   return new Date(String(s.local_datetime || '').replace(' ', 'T')).getTime();
 }
 
-async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta') {
+async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta', countryCode = '') {
+  const cc = String(countryCode || '').trim().toUpperCase();
+  const isIndonesia = !cc || cc === 'ID';
   const key = String(cityName || 'Jakarta').trim().toLowerCase();
-  const adm4 = BMKG_ADM4_MAP[key] || (key.includes('jakarta') ? '31.71.01.1001' : (key.includes('bandung') ? '32.73.07.1003' : null));
+  const adm4 = isIndonesia
+    ? (BMKG_ADM4_MAP[key] || (key.includes('jakarta') ? '31.71.01.1001' : (key.includes('bandung') ? '32.73.07.1003' : null)))
+    : null;
 
   if (adm4) {
     try {
@@ -818,51 +822,59 @@ async function fetchWeather(lat = -6.2088, lon = 106.8456, cityName = 'Jakarta')
   };
 }
 
-async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia') {
+async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia', lat = null, lon = null) {
   const now = new Date();
   const yyyy = String(now.getFullYear());
   const mm   = String(now.getMonth() + 1).padStart(2, '0');
   const dd   = String(now.getDate()).padStart(2, '0');
   const dateKey = `${yyyy}-${mm}-${dd}`;
   const cleanCity = String(city || 'Jakarta').trim().toLowerCase();
+  const cleanCountry = String(country || '').trim();
+  const isIndonesia = !cleanCountry || /^(indonesia|id)$/i.test(cleanCountry);
 
-  // Primary: Official Kemenag RI via MyQuran v2 API
-  try {
-    let cityId = MYQURAN_CITY_CACHE[cleanCity] || (cleanCity.includes('jakarta') ? '1301' : (cleanCity.includes('bandung') ? '1219' : null));
-    if (!cityId) {
-      const searchRes = await fetchJson(`https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(cleanCity)}`, 5500);
-      if (searchRes && searchRes.status && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
-        const kotaMatch = searchRes.data.find(x => /^KOTA\s+/i.test(x.lokasi)) || searchRes.data[0];
-        cityId = kotaMatch.id;
-        MYQURAN_CITY_CACHE[cleanCity] = cityId;
+  // Primary for Indonesia: Official Kemenag RI via MyQuran v2 API
+  if (isIndonesia) {
+    try {
+      let cityId = MYQURAN_CITY_CACHE[cleanCity] || (cleanCity.includes('jakarta') ? '1301' : (cleanCity.includes('bandung') ? '1219' : null));
+      if (!cityId) {
+        const searchRes = await fetchJson(`https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(cleanCity)}`, 5500);
+        if (searchRes && searchRes.status && Array.isArray(searchRes.data) && searchRes.data.length > 0) {
+          const kotaMatch = searchRes.data.find(x => /^KOTA\s+/i.test(x.lokasi)) || searchRes.data[0];
+          cityId = kotaMatch.id;
+          MYQURAN_CITY_CACHE[cleanCity] = cityId;
+        }
       }
-    }
-    if (cityId) {
-      const kRes = await fetchJson(`https://api.myquran.com/v2/sholat/jadwal/${cityId}/${yyyy}/${mm}/${dd}`, 6500);
-      const j = kRes && kRes.status && kRes.data && kRes.data.jadwal ? kRes.data.jadwal : null;
-      if (j && j.subuh && j.dzuhur) {
-        return {
-          source: 'Kemenag RI',
-          city: (kRes.data.lokasi || city).replace(/^KOTA\s+/i, '').replace(/^KAB\.\s+/i, ''),
-          dateKey,
-          tanggal: j.tanggal || `${dd}/${mm}/${yyyy}`,
-          imsak: j.imsak || '',
-          terbit: j.terbit || '',
-          timings: [
-            { key: 'Fajr', time: j.subuh },
-            { key: 'Dhuhr', time: j.dzuhur },
-            { key: 'Asr', time: j.ashar },
-            { key: 'Maghrib', time: j.maghrib },
-            { key: 'Isha', time: j.isya }
-          ],
-          updatedAt: Date.now()
-        };
+      if (cityId) {
+        const kRes = await fetchJson(`https://api.myquran.com/v2/sholat/jadwal/${cityId}/${yyyy}/${mm}/${dd}`, 6500);
+        const j = kRes && kRes.status && kRes.data && kRes.data.jadwal ? kRes.data.jadwal : null;
+        if (j && j.subuh && j.dzuhur) {
+          return {
+            source: 'Kemenag RI',
+            city: (kRes.data.lokasi || city).replace(/^KOTA\s+/i, '').replace(/^KAB\.\s+/i, ''),
+            dateKey,
+            tanggal: j.tanggal || `${dd}/${mm}/${yyyy}`,
+            imsak: j.imsak || '',
+            terbit: j.terbit || '',
+            timings: [
+              { key: 'Fajr', time: j.subuh },
+              { key: 'Dhuhr', time: j.dzuhur },
+              { key: 'Asr', time: j.ashar },
+              { key: 'Maghrib', time: j.maghrib },
+              { key: 'Isha', time: j.isya }
+            ],
+            updatedAt: Date.now()
+          };
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
-  // Fallback: Aladhan Method 20
-  const url = `https://api.aladhan.com/v1/timingsByCity/${dd}-${mm}-${yyyy}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=20`;
+  // Global Fallback: AlAdhan by coordinates (most reliable globally) -> timingsByCity
+  const method = isIndonesia ? 20 : 3; // 20 = Kemenag RI, 3 = Muslim World League (Global Standard)
+  const hasCoords = Number.isFinite(Number(lat)) && Number.isFinite(Number(lon));
+  const url = hasCoords
+    ? `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&method=${method}`
+    : `https://api.aladhan.com/v1/timingsByCity/${dd}-${mm}-${yyyy}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(cleanCountry || 'Indonesia')}&method=${method}`;
   const res = await fetchJson(url, 8000);
   const t = res && res.data && res.data.timings ? res.data.timings : {};
   const clean = (s) => (s || '').replace(/\s*\(.*\)/, '').trim();
@@ -875,7 +887,7 @@ async function fetchPrayerTimes(city = 'Jakarta', country = 'Indonesia') {
   ].filter(x => /^\d{2}:\d{2}$/.test(x.time));
 
   return {
-    source: 'Kemenag RI',
+    source: isIndonesia ? 'Kemenag RI' : 'AlAdhan MWL',
     city,
     dateKey,
     tanggal: `${dd}/${mm}/${yyyy}`,
@@ -978,10 +990,12 @@ function parseIcs(icsText) {
       return m ? m[1].trim().replace(/\\n/g, ' ').replace(/\\,/g, ',') : '';
     };
     const summary = getProp('SUMMARY');
+    const status = getProp('STATUS').toUpperCase();
     const startRaw = getProp('DTSTART');
     const endRaw = getProp('DTEND');
     const rruleRaw = getProp('RRULE');
     const location = getProp('LOCATION');
+    if (status === 'CANCELLED') continue;
     const parsed = parseIcsDate(startRaw);
     if (!summary || !parsed) continue;
     const endParsed = parseIcsDate(endRaw);
@@ -1082,6 +1096,10 @@ function fetchSingleCalCli(exePath, prefixArgs, calMeta, customEnv) {
   });
 }
 
+function parseJsonSafe(rawText) {
+  return JSON.parse(String(rawText || '').replace(/^\uFEFF/, ''));
+}
+
 async function fetchGcalendarCliEvents(calendarList = DEFAULT_CALENDARS, forceRefresh = false) {
   const calsToQuery = Array.isArray(calendarList) && calendarList.length > 0 ? calendarList : DEFAULT_CALENDARS;
   if (calsToQuery.length === 0) return { ok: false, events: [] };
@@ -1091,12 +1109,12 @@ async function fetchGcalendarCliEvents(calendarList = DEFAULT_CALENDARS, forceRe
   const gcalCachePath = path.join(appDataDir, 'gcal-cache.json');
   const gcalEnvPath = path.join(appDataDir, 'gcal-env.json');
 
-  // Fast-path: use recent cache (< 5 min old) during background polls to avoid spawning CLI processes
+  // Fast-path: use recent cache (< 4 min old) so every 5-min timer tick always fetches fresh calendar edits
   if (!forceRefresh) {
     try {
       if (fs.existsSync(gcalCachePath)) {
-        const cached = JSON.parse(fs.readFileSync(gcalCachePath, 'utf8'));
-        if (cached && Array.isArray(cached.events) && (Date.now() - Number(cached.updatedAt || 0) < 5 * 60 * 1000)) {
+        const cached = parseJsonSafe(fs.readFileSync(gcalCachePath, 'utf8'));
+        if (cached && Array.isArray(cached.events) && (Date.now() - Number(cached.updatedAt || 0) < 4 * 60 * 1000)) {
           const now = Date.now();
           const upcoming = cached.events.filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
           if (upcoming.length > 0) {
@@ -1110,7 +1128,7 @@ async function fetchGcalendarCliEvents(calendarList = DEFAULT_CALENDARS, forceRe
   let cliEnv = { ...process.env };
   try {
     if (fs.existsSync(gcalEnvPath)) {
-      const savedEnv = JSON.parse(fs.readFileSync(gcalEnvPath, 'utf8'));
+      const savedEnv = parseJsonSafe(fs.readFileSync(gcalEnvPath, 'utf8'));
       cliEnv = { ...cliEnv, ...savedEnv };
     }
   } catch {}
@@ -1124,17 +1142,19 @@ async function fetchGcalendarCliEvents(calendarList = DEFAULT_CALENDARS, forceRe
     const validLists = results.filter(Array.isArray);
     if (validLists.length > 0) {
       const merged = validLists.flat();
+      const now = Date.now();
+      const upcoming = merged.filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
       try {
         fs.mkdirSync(appDataDir, { recursive: true });
         fs.writeFileSync(gcalCachePath, JSON.stringify({ updatedAt: Date.now(), events: merged }, null, 2), 'utf8');
       } catch {}
-      return { ok: true, events: merged };
+      return { ok: true, events: upcoming };
     }
   }
 
   try {
     if (fs.existsSync(gcalCachePath)) {
-      const cached = JSON.parse(fs.readFileSync(gcalCachePath, 'utf8'));
+      const cached = parseJsonSafe(fs.readFileSync(gcalCachePath, 'utf8'));
       if (cached && Array.isArray(cached.events)) {
         const now = Date.now();
         const upcoming = cached.events.filter(ev => (ev.endMs || ev.startMs + 3600000) >= now - 1800000);
@@ -1172,8 +1192,11 @@ async function fetchCalendarEvents(icsUrl, localEvents = [], gcalAccount = '', c
     remote.push(...cliRes.events);
   }
 
-  // 2. Private/Public iCal (.ics) URLs (supports single or multiple URLs separated by comma/newline)
-  const urls = String(icsUrl || '').split(/[\s,;]+/).map(u => u.trim()).filter(u => /^https?:\/\//i.test(u));
+  // 2. Private/Public iCal (.ics) URLs (supports single/multiple links + webcal:// -> https://)
+  const urls = String(icsUrl || '')
+    .split(/[\s,;]+/)
+    .map(u => u.trim().replace(/^webcal:\/\//i, 'https://'))
+    .filter(u => /^https?:\/\//i.test(u));
   if (urls.length > 0) {
     const icsResults = await Promise.allSettled(urls.map(u => fetchText(u, 9000)));
     for (const r of icsResults) {
@@ -1349,11 +1372,26 @@ async function fetchAlbumArtHD(rawTitle, rawArtist, cacheDir) {
 }
 
 async function geocodeCity(cityName) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
-  const res = await fetchJson(url, 6000);
-  const first = res && res.results && res.results[0];
+  const raw = String(cityName || '').trim();
+  if (!raw) return null;
+  const querySearch = async (q) => {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`;
+    const res = await fetchJson(url, 6000);
+    return res && res.results && res.results[0];
+  };
+  let first = await querySearch(raw);
+  if (!first && raw.includes(',')) {
+    const baseCity = raw.split(',')[0].trim();
+    if (baseCity) first = await querySearch(baseCity);
+  }
   if (!first) return null;
-  return { name: first.name || cityName, lat: first.latitude, lon: first.longitude };
+  return {
+    name: first.name || raw.split(',')[0].trim(),
+    country: first.country || '',
+    countryCode: String(first.country_code || '').toUpperCase(),
+    lat: first.latitude,
+    lon: first.longitude
+  };
 }
 
 module.exports = {

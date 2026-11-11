@@ -11,6 +11,7 @@
   "prayerAdzanAlert": true,
   "city": "Jakarta",
   "country": "Indonesia",
+  "countryCode": "ID",
   "weatherLat": -6.2088,
   "weatherLon": 106.8456,
   "gcalAccount": "",

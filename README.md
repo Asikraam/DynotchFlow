@@ -53,8 +53,8 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 
 | Artifact | SHA-256 |
 | :--- | :--- |
-| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `CCCF4550A526C2F9E9507B97845374AC88F95722840FD41E612EF039A7A4D532` |
-| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `90A2E51C1124330E25B7D7EFC04CB823C8D715BACB625382852BB47F39C8E075` |
+| `DynotchFlow-Setup-v1.0.0-win-x64.exe` | `6A3DA93FE639E3C49E893CDDF7C719F7A0A03B1A08658D346BA80E56531B18B3` |
+| `DynotchFlow-v1.0.0-win-x64-Portable.zip` | `548B1ABAE853CD4F44BF226B143E656AC3B38419E14093B24C928683204745B5` |
 
 </details>
 
@@ -66,8 +66,8 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 | :--- | :--- |
 | **Music & Synced Lyrics** | Universal player detection via Windows Media (`GSMTC`) with a **60fps wavy progress scrubber**. Matches lyrics across **LRCLIB**, **iTunes canonical titles**, **Kugou LRC**, and **`lyrics.ovh`**. Click any lyric line to jump straight to that moment, auto-scale tempo on *Slowed / Sped-Up* uploads, and enjoy automatic holds during instrumentals (`[Instrumental]` / `♪` / `>= 10s` breaks) and `> 15 min` full-concert videos. |
 | **Normal & Matte Themes** | Pick **Normal** (warm album backdrop & animated weather sky) or **Matte Minimalist** (`#09090b` pure flat dark theme) in **Settings (`⚙`)**. |
-| **Multi-Calendar (`.ics`)** | Merge one or multiple Google Calendar secret iCal (`.ics`) links plus local quick events (`+ Event`). Shows `Study` / `Work` / `Social` / `Personal` filters, `LIVE` & countdown badges, and gentle start alerts. |
-| **Weather & Prayer Times** | Forecast transitions via **BMKG Indonesia** and global **Open-Meteo**, paired with daily 5-prayer times (`Fajr`, `Dhuhr`, `Asr`, `Maghrib`, `Isha`) and H-10m / H-5m / Adzan reminders. |
+| **Multi-Calendar (`.ics`)** | Merge one or multiple Google/Outlook/iCloud iCal (`.ics` / `webcal://`) links plus offline quick events (`+ Event`). **100% private & local on your PC** — `Get Link` opens your own browser's Google Calendar settings. Includes `Study` / `Work` / `Social` / `Personal` filters, auto 5-min sync, `LIVE` & countdown badges, and gentle start alerts. |
+| **Weather & Prayer Times** | Auto-detects your Windows timezone city on first run outside Indonesia — using **BMKG & Kemenag RI** across Indonesia and global **Open-Meteo + AlAdhan (MWL)** worldwide — with 5 daily prayers (`Fajr`, `Dhuhr`, `Asr`, `Maghrib`, `Isha`) and H-10m / H-5m / Adzan reminders. |
 | **Notch Shelf & Volume** | Drop files, screenshots, or quick notes onto the island and drag files straight back into Explorer, WhatsApp, or browsers. Scroll over the pill volume icon to adjust Windows volume cleanly (`±2`). |
 | **Flexible Size & Auto-Hide** | Switch pill height between **`30px` / `34px` / `40px`** (typography scales proportionally), align **Left / Center / Right** or fine-tune horizontally, auto-hide to the top screen edge (`Alt+H`), or hide automatically during fullscreen apps & games. |
 
@@ -123,12 +123,12 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 ## ⚡ 10-Second Setup
 
 ### 1. Set Your City
-Click **`⚙` (Settings)** → enter any city worldwide under **City (Weather & Prayer)** (default: `Jakarta`) → click **Apply**. It uses BMKG & Kemenag across Indonesia and Open-Meteo globally.
+On first launch outside Indonesia, DynotchFlow automatically resolves your local city from Windows' system timezone (with zero telemetry). You can also click **`⚙` (Settings)** → enter any city worldwide (e.g., `London`, `Tokyo`, `New York, US`, `Bandung`) → click **Apply** to switch dynamically between **BMKG + Kemenag RI** (Indonesia) and **Open-Meteo + AlAdhan MWL** (global).
 
-### 2. Connect Google Calendar *(Private & Local Only)*
+### 2. Connect Google Calendar *(Private & Isolated per PC)*
 1. Open **Calendar** → click **Connect Google Calendar (.ics)** *(or click **`⚙` → Get Link**)*.
-2. Scroll down your Google Calendar settings to **Secret address in iCal format** → click **Copy**.
-3. DynotchFlow automatically grabs the copied URL and syncs your schedule locally. *(Tip: separate multiple `.ics` URLs with commas or spaces to merge several calendars.)*
+2. Your own default browser opens **your** Google Calendar settings (`calendar.google.com`) — zero shared accounts or preloaded credentials. Scroll down to **Secret address in iCal format** → click **Copy**.
+3. DynotchFlow automatically grabs the copied URL and syncs every 5 minutes *(also supports `webcal://` Apple/Outlook feeds, multiple `.ics` URLs separated by commas/spaces, or offline `+ Event` reminders)*.
 
 ---
 
