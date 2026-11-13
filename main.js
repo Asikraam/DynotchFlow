@@ -154,6 +154,7 @@ let isHiddenManual = false;
 let lastTrackKey = '';
 let lastLyricsResult = null;
 let lastMediaMsg = null;
+let lastVolumeMsg = null;
 let currentThumb = '';
 let hasHdArt = false;
 let gcalWatchTimer = null;
@@ -566,6 +567,7 @@ function startMediaVolumeBridge() {
       try {
         const msg = JSON.parse(line);
         if (msg.type === 'volume') {
+          lastVolumeMsg = msg;
           sendToRenderer('bridge:volume', msg);
         } else if (msg.type === 'media') {
           handleMediaMessage(msg);
@@ -601,7 +603,7 @@ function startWebhookServer() {
       return;
     }
     if (req.method === 'GET' && req.url === '/health') {
-      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.2' }));
+      res.end(JSON.stringify({ ok: true, app: 'DynotchFlow', version: '1.0.3' }));
       return;
     }
     if (req.method === 'POST' && req.url === '/push') {
@@ -725,6 +727,7 @@ function createWindow() {
     sendToRenderer('bridge:config', config);
     sendToRenderer('bridge:shelf', shelf);
     sendToRenderer('bridge:external', externalState);
+    if (lastVolumeMsg) sendToRenderer('bridge:volume', { ...lastVolumeMsg, initial: true });
     if (process.argv.includes('--just-installed-to-programs')) {
       setTimeout(() => {
         sendToRenderer('bridge:toast', {
@@ -900,7 +903,7 @@ function setupIpc() {
   });
 
   ipcMain.handle('notch:get-state', async () => {
-    return { config, shelf, external: externalState, lyrics: lastLyricsResult, media: lastMediaMsg };
+    return { config, shelf, external: externalState, lyrics: lastLyricsResult, media: lastMediaMsg, volume: lastVolumeMsg };
   });
 
   ipcMain.handle('notch:save-config', async (_e, partial) => {

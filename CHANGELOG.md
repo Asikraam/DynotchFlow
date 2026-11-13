@@ -2,6 +2,11 @@
 
 All notable changes to **DynotchFlow** are documented in this file.
 
+## [1.0.3] — 2026-11-13
+### Fixed & Improved
+- **Live Audio Endpoint Re-Binding & Reliable Volume Scroll (`NotchBridge.cs`, `bridge.ps1`):** Added `[PreserveSig]` COM bindings + `GetId`/`GetState` device verification so switching speakers, headphones, HDMI audio, or waking from Windows sleep immediately rebinds CoreAudio to the active default output device instead of staying locked onto a stale endpoint; coalesced burst wheel commands cleanly, retried failed COM calls, and forced authoritative OS volume confirmation after every `vol:set` / `vol:mute`.
+- **Startup Volume Hydration & Wheel Echo Reconciliation (`main.js`, `renderer/app.js`):** Cached `lastVolumeMsg` in `main.js` for `ready-to-show` + `notch:get-state`, guarded `deltaY === 0`, and added `volWheelHoldUntil` / `pendingVolSync` reconciliation so scrolling the volume chip never desyncs UI percentages from actual Windows master volume.
+
 ## [1.0.2] — 2026-11-11
 ### Fixed & Improved
 - **HD Album Cover Matching for Indonesian & Global Tracks (`services.js`):** Expanded `fetchAlbumArtHD()` to query US iTunes, **Indonesia iTunes (`country=id`)**, and **Deezer** in parallel with relevance scoring (`scoreArtCandidate`), reversed *Artist — Title* fallback resolution, and wrong-artist rejection — fixing missing covers when playing Indonesian or Asian tracks in web browsers.

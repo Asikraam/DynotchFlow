@@ -13,8 +13,8 @@ using Microsoft.Win32;
 [assembly: AssemblyDescription("DynotchFlow — 1-Click Installer & Launcher")]
 [assembly: AssemblyProduct("DynotchFlow")]
 [assembly: AssemblyCompany("DynotchFlow Open Source")]
-[assembly: AssemblyVersion("1.0.2.0")]
-[assembly: AssemblyFileVersion("1.0.2.0")]
+[assembly: AssemblyVersion("1.0.3.0")]
+[assembly: AssemblyFileVersion("1.0.3.0")]
 
 public static class DynotchFlowSetup {
     private const long PAYLOAD_MAGIC = 0x574F4C464843544EL; // "NTHCHFLW"

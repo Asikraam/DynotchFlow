@@ -15,35 +15,38 @@ using Windows.Storage.Streams;
 [assembly: AssemblyDescription("DynotchFlow Native WinRT Bridge")]
 [assembly: AssemblyProduct("DynotchFlow")]
 [assembly: AssemblyCompany("DynotchFlow")]
-[assembly: AssemblyVersion("1.0.2.0")]
-[assembly: AssemblyFileVersion("1.0.2.0")]
+[assembly: AssemblyVersion("1.0.3.0")]
+[assembly: AssemblyFileVersion("1.0.3.0")]
 
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIAudioEndpointVolume {
-    int RegisterControlChangeNotify(IntPtr pNotify);
-    int UnregisterControlChangeNotify(IntPtr pNotify);
-    int GetChannelCount(out uint pnChannelCount);
-    int SetMasterVolumeLevel(float fLevelDB, ref Guid pguidEventContext);
-    int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
-    int GetMasterVolumeLevel(out float pfLevelDB);
-    int GetMasterVolumeLevelScalar(out float pfLevel);
-    int SetChannelVolumeLevel(uint nChannel, float fLevelDB, ref Guid pguidEventContext);
-    int SetChannelVolumeLevelScalar(uint nChannel, float fLevel, ref Guid pguidEventContext);
-    int GetChannelVolumeLevel(uint nChannel, out float pfLevelDB);
-    int GetChannelVolumeLevelScalar(uint nChannel, out float pfLevel);
-    int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid pguidEventContext);
-    int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
+    [PreserveSig] int RegisterControlChangeNotify(IntPtr pNotify);
+    [PreserveSig] int UnregisterControlChangeNotify(IntPtr pNotify);
+    [PreserveSig] int GetChannelCount(out uint pnChannelCount);
+    [PreserveSig] int SetMasterVolumeLevel(float fLevelDB, ref Guid pguidEventContext);
+    [PreserveSig] int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
+    [PreserveSig] int GetMasterVolumeLevel(out float pfLevelDB);
+    [PreserveSig] int GetMasterVolumeLevelScalar(out float pfLevel);
+    [PreserveSig] int SetChannelVolumeLevel(uint nChannel, float fLevelDB, ref Guid pguidEventContext);
+    [PreserveSig] int SetChannelVolumeLevelScalar(uint nChannel, float fLevel, ref Guid pguidEventContext);
+    [PreserveSig] int GetChannelVolumeLevel(uint nChannel, out float pfLevelDB);
+    [PreserveSig] int GetChannelVolumeLevelScalar(uint nChannel, out float pfLevel);
+    [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid pguidEventContext);
+    [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
 }
 
 [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIMMDevice {
-    int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    [PreserveSig] int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    [PreserveSig] int OpenPropertyStore(int stgmAccess, out IntPtr ppProperties);
+    [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string ppstrId);
+    [PreserveSig] int GetState(out int pdwState);
 }
 
 [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 public interface NFIMMDeviceEnumerator {
-    int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IntPtr ppDevices);
-    int GetDefaultAudioEndpoint(int dataFlow, int role, out NFIMMDevice ppEndpoint);
+    [PreserveSig] int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IntPtr ppDevices);
+    [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out NFIMMDevice ppEndpoint);
 }
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
@@ -103,7 +106,9 @@ public static class Program {
     [DllImport("kernel32.dll")]
     public static extern bool SetProcessWorkingSetSize(IntPtr hProcess, IntPtr dwMinimumWorkingSetSize, IntPtr dwMaximumWorkingSetSize);
 
+    private static NFIMMDeviceEnumerator cachedEnum = null;
     private static NFIAudioEndpointVolume cachedEp = null;
+    private static string cachedDevId = "";
     private static IntPtr notchHwnd = IntPtr.Zero;
 
     private static void EnablePerMonitorDpi() {
@@ -115,55 +120,121 @@ public static class Program {
         }
     }
 
-    private static NFIAudioEndpointVolume GetEndpoint() {
-        if (cachedEp != null) return cachedEp;
-        try {
-            var enumerator = (NFIMMDeviceEnumerator)(new NFMMDeviceEnumerator());
-            NFIMMDevice dev;
-            enumerator.GetDefaultAudioEndpoint(0, 1, out dev);
-            if (dev == null) return null;
-            object epObj;
-            Guid iid = typeof(NFIAudioEndpointVolume).GUID;
-            dev.Activate(ref iid, 23, IntPtr.Zero, out epObj);
-            cachedEp = epObj as NFIAudioEndpointVolume;
-            return cachedEp;
-        } catch { return null; }
+    private static void ResetEndpoint(bool clearEnumerator) {
+        if (cachedEp != null) {
+            try { Marshal.ReleaseComObject(cachedEp); } catch {}
+            cachedEp = null;
+        }
+        cachedDevId = "";
+        if (clearEnumerator && cachedEnum != null) {
+            try { Marshal.ReleaseComObject(cachedEnum); } catch {}
+            cachedEnum = null;
+        }
     }
 
-    public static void GetVolume(out int pct, out bool mute) {
-        pct = -1; mute = false;
+    private static NFIAudioEndpointVolume GetEndpoint(bool verifyDevice) {
+        if (cachedEp != null && !verifyDevice) return cachedEp;
+        NFIMMDevice dev = null;
         try {
-            var ep = GetEndpoint();
-            if (ep == null) return;
-            float v; bool m;
-            ep.GetMasterVolumeLevelScalar(out v);
-            ep.GetMute(out m);
-            pct = ((int)Math.Round(v * 50.0f)) * 2;
-            mute = m;
-        } catch { cachedEp = null; }
+            if (cachedEnum == null) {
+                cachedEnum = (NFIMMDeviceEnumerator)(new NFMMDeviceEnumerator());
+            }
+            int hr = cachedEnum.GetDefaultAudioEndpoint(0, 1, out dev); // eRender + eMultimedia
+            if (hr < 0 || dev == null) {
+                hr = cachedEnum.GetDefaultAudioEndpoint(0, 0, out dev); // fallback eConsole
+            }
+            if (hr < 0 || dev == null) {
+                ResetEndpoint(true);
+                return null;
+            }
+            string devId = null;
+            int devState = 0;
+            dev.GetId(out devId);
+            dev.GetState(out devState);
+            if (cachedEp != null && !string.IsNullOrEmpty(devId) && devId == cachedDevId && devState == 1) {
+                return cachedEp;
+            }
+            ResetEndpoint(false);
+            object epObj;
+            Guid iid = typeof(NFIAudioEndpointVolume).GUID;
+            hr = dev.Activate(ref iid, 23, IntPtr.Zero, out epObj);
+            if (hr < 0 || epObj == null) return null;
+            cachedEp = epObj as NFIAudioEndpointVolume;
+            cachedDevId = devId ?? "";
+            return cachedEp;
+        } catch {
+            ResetEndpoint(true);
+            return null;
+        } finally {
+            if (dev != null) { try { Marshal.ReleaseComObject(dev); } catch {} }
+        }
+    }
+
+    public static void GetVolume(out int pct, out bool mute, bool verifyDevice) {
+        pct = -1; mute = false;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                var ep = GetEndpoint(verifyDevice || attempt > 0);
+                if (ep == null) return;
+                float v; bool m;
+                int hr1 = ep.GetMasterVolumeLevelScalar(out v);
+                int hr2 = ep.GetMute(out m);
+                if (hr1 < 0 || hr2 < 0) {
+                    ResetEndpoint(attempt > 0);
+                    continue;
+                }
+                pct = Math.Max(0, Math.Min(100, ((int)Math.Round((double)v * 50.0)) * 2));
+                mute = m;
+                return;
+            } catch {
+                ResetEndpoint(true);
+            }
+        }
     }
 
     public static void SetVolume(int pct) {
-        try {
-            var ep = GetEndpoint();
-            if (ep == null) return;
-            int evenPct = ((int)Math.Round(pct / 2.0)) * 2;
-            float v = Math.Max(0.0f, Math.Min(1.0f, evenPct / 100.0f));
-            Guid ctx = Guid.Empty;
-            ep.SetMasterVolumeLevelScalar(v, ref ctx);
-            if (evenPct > 0) ep.SetMute(false, ref ctx);
-        } catch { cachedEp = null; }
+        int evenPct = Math.Max(0, Math.Min(100, ((int)Math.Round(pct / 2.0)) * 2));
+        float v = evenPct / 100.0f;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                var ep = GetEndpoint(true);
+                if (ep == null) return;
+                Guid ctx = Guid.Empty;
+                int hr = ep.SetMasterVolumeLevelScalar(v, ref ctx);
+                if (hr < 0) {
+                    ResetEndpoint(attempt > 0);
+                    continue;
+                }
+                if (evenPct > 0) ep.SetMute(false, ref ctx);
+                return;
+            } catch {
+                ResetEndpoint(true);
+            }
+        }
     }
 
     public static void ToggleMute() {
-        try {
-            var ep = GetEndpoint();
-            if (ep == null) return;
-            bool m;
-            ep.GetMute(out m);
-            Guid ctx = Guid.Empty;
-            ep.SetMute(!m, ref ctx);
-        } catch { cachedEp = null; }
+        for (int attempt = 0; attempt < 2; attempt++) {
+            try {
+                var ep = GetEndpoint(true);
+                if (ep == null) return;
+                bool m;
+                int hr = ep.GetMute(out m);
+                if (hr < 0) {
+                    ResetEndpoint(attempt > 0);
+                    continue;
+                }
+                Guid ctx = Guid.Empty;
+                hr = ep.SetMute(!m, ref ctx);
+                if (hr < 0) {
+                    ResetEndpoint(attempt > 0);
+                    continue;
+                }
+                return;
+            } catch {
+                ResetEndpoint(true);
+            }
+        }
     }
 
     public static void MoveWindowClean(long hwndVal, int x, int y) {
@@ -407,12 +478,15 @@ public static class Program {
         TrimMemoryFootprint();
 
         while (true) {
+            wakeEvent.Reset();
             trimTick++;
             if (!isNotchExpanded && (trimTick == 3 || trimTick == 10 || trimTick % 40 == 0)) {
                 TrimMemoryFootprint();
             }
 
             string cmdLine;
+            int pendingVolSet = -1;
+            bool volActionRan = false;
             while (cmdQueue.TryDequeue(out cmdLine)) {
                 if (cmdLine == "__EXIT__") Environment.Exit(0);
                 try {
@@ -439,10 +513,14 @@ public static class Program {
                         }
                         lastSentPos = -999.0;
                     } else if (cmdLine.StartsWith("vol:set:")) {
-                        int pct = int.Parse(cmdLine.Substring(8), CultureInfo.InvariantCulture);
-                        SetVolume(pct);
+                        pendingVolSet = int.Parse(cmdLine.Substring(8), CultureInfo.InvariantCulture);
                     } else if (cmdLine == "vol:mute") {
+                        if (pendingVolSet >= 0) {
+                            SetVolume(pendingVolSet);
+                            pendingVolSet = -1;
+                        }
                         ToggleMute();
+                        volActionRan = true;
                     } else if (cmdLine.StartsWith("win:init:")) {
                         long hwnd = long.Parse(cmdLine.Substring(9), CultureInfo.InvariantCulture);
                         MakeFramelessClean(hwnd);
@@ -461,10 +539,14 @@ public static class Program {
                     }
                 } catch {}
             }
+            if (pendingVolSet >= 0) {
+                SetVolume(pendingVolSet);
+                volActionRan = true;
+            }
 
             int vol; bool mute;
-            GetVolume(out vol, out mute);
-            if (vol >= 0 && (vol != lastVol || mute != lastMute)) {
+            GetVolume(out vol, out mute, volActionRan || (trimTick % 4 == 0));
+            if (vol >= 0 && (volActionRan || vol != lastVol || mute != lastMute)) {
                 bool isInit = (lastVol < 0);
                 lastVol = vol;
                 lastMute = mute;
@@ -579,7 +661,6 @@ public static class Program {
             Console.Out.Flush();
             int waitMs = (s != null && statusStr == "Playing") ? 300 : 700;
             wakeEvent.Wait(waitMs);
-            wakeEvent.Reset();
         }
     }
 }

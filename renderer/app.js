@@ -763,18 +763,45 @@ function ensureScrubberLoop() {
 
 // Quick volume chip click + scroll (strictly even numbers: 0, 2, 4, 6, 8, 10...)
 const volBtn = document.getElementById('btn-vol-quick');
+let volWheelHoldUntil = 0;
+let volSyncTimer = null;
+let pendingVolSync = null;
+
+function applyVolumeUi(d, suppressHud = false) {
+  if (!d || typeof d.volume !== 'number') return;
+  const evenVol = Math.max(0, Math.min(100, Math.round((d.volume || 0) / 2) * 2));
+  volumeState = { ...d, volume: evenVol };
+  const isMuted = Boolean(d.muted) || evenVol === 0;
+  const ico = isMuted ? ICONS.mute : ICONS.vol;
+  document.getElementById('hdr-vol-ico').innerHTML = ico;
+  document.getElementById('hdr-vol-txt').textContent = isMuted ? 'Mute' : `${evenVol}%`;
+  if (!suppressHud && !d.initial && !isExpanded) {
+    flashHud(ico, isMuted ? 'Muted' : 'Volume', isMuted ? 0 : evenVol, 1900);
+  }
+}
+
 volBtn.addEventListener('click', () => window.notchApi.toggleMute());
 volBtn.addEventListener('wheel', (e) => {
   e.preventDefault();
+  if (!e.deltaY) return;
   const curEven = Math.round((volumeState.volume || 0) / 2) * 2;
   const next = Math.max(0, Math.min(100, curEven + (e.deltaY < 0 ? 2 : -2)));
-  volumeState.volume = next;
-  volumeState.muted = next === 0;
+  volWheelHoldUntil = Date.now() + 280;
+  pendingVolSync = null;
+  volumeState = { ...volumeState, volume: next, muted: next === 0 };
   const ico = next === 0 ? ICONS.mute : ICONS.vol;
   document.getElementById('hdr-vol-ico').innerHTML = ico;
   document.getElementById('hdr-vol-txt').textContent = next === 0 ? 'Mute' : `${next}%`;
   window.notchApi.setVolume(next);
-});
+  clearTimeout(volSyncTimer);
+  volSyncTimer = setTimeout(() => {
+    if (pendingVolSync) {
+      const latest = pendingVolSync;
+      pendingVolSync = null;
+      applyVolumeUi(latest, true);
+    }
+  }, 320);
+}, { passive: false });
 
 function setPillLyricText(text) {
   if (text === lastPillText) return;
@@ -1775,15 +1802,12 @@ window.notchApi.onLyricsUpdate((d) => {
 });
 
 window.notchApi.onVolumeUpdate((d) => {
-  const evenVol = Math.max(0, Math.min(100, Math.round((d.volume || 0) / 2) * 2));
-  volumeState = { ...d, volume: evenVol };
-  const isMuted = Boolean(d.muted) || evenVol === 0;
-  const ico = isMuted ? ICONS.mute : ICONS.vol;
-  document.getElementById('hdr-vol-ico').innerHTML = ico;
-  document.getElementById('hdr-vol-txt').textContent = isMuted ? 'Mute' : `${evenVol}%`;
-  if (!d.initial && !isExpanded) {
-    flashHud(ico, isMuted ? 'Muted' : 'Volume', isMuted ? 0 : evenVol, 1900);
+  if (Date.now() < volWheelHoldUntil) {
+    pendingVolSync = d;
+    return;
   }
+  pendingVolSync = null;
+  applyVolumeUi(d, false);
 });
 
 window.notchApi.onExternalUpdate((d) => {
@@ -1838,5 +1862,6 @@ window.notchApi.getState().then(s => {
     renderLyricsList();
   }
   if (s.media) { mediaState = s.media; renderMediaUi(); }
+  if (s.volume) applyVolumeUi(s.volume, true);
   updateClockAndAlert();
 });
