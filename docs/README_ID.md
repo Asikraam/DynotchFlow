@@ -38,6 +38,12 @@ Pilih file sesuai kebutuhan dari halaman [**GitHub Releases**](https://github.co
 | **macOS / Linux** | *UI Source* | UI berjalan dari source; dukungan bridge native macOS/Linux menyusul |
 
 ### Langkah Instalasi
+**Paling Cepat (1 Perintah PowerShell — Tanpa Git & Tanpa Node.js):**
+```powershell
+$r = Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest"; $u = ($r.assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1).browser_download_url; $f = "$env:TEMP\DynotchFlow-Setup.exe"; Invoke-WebRequest $u -OutFile $f; Start-Process $f
+```
+
+Atau unduh manual:
 1. Unduh **`DynotchFlow-Setup-v1.0.3-win-x64.exe`** *(atau file `.zip` portabel)* di [**GitHub Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
 2. Klik 2x `.exe` untuk memasang dan langsung menjalankan DynotchFlow *(jika update dari versi sebelumnya, langsung timpa tanpa uninstall — setting & kalender aman).*
 3. **Jika muncul peringatan Windows Defender SmartScreen (*"Windows protected your PC"*):** Hal ini wajar untuk proyek open-source mandiri tanpa sertifikat berbayar. Cukup klik **More info** → **Run anyway**. Semua kode terbuka dan build binary diverifikasi lewat [**GitHub Actions CI**](https://github.com/Asikraam/DynotchFlow/actions).
@@ -91,18 +97,15 @@ npm start
 ### Belum Punya Git atau Node.js? (Sekali Jalan Tanpa Restart PowerShell)
 Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recognized...` atau `npm : The term 'npm' is not recognized...`), cukup jalankan **1 perintah** sampai selesai:
 
-- **Opsi 1 — All-in-One Sekali Jalan (Otomatis pasang Git + Node.js kalau belum ada, refresh `PATH`, clone, & langsung jalankan):**
+- **Opsi 1 — All-in-One Sekali Jalan (Fleksibel: otomatis pasang Git + Node.js/npm via `winget` atau fallback `nodejs.org`/ZIP, refresh `PATH`, clone, & jalankan):**
   ```powershell
   irm https://raw.githubusercontent.com/Asikraam/DynotchFlow/main/scripts/install.ps1 | iex
   ```
-  *(Menjalankan [scripts/install.ps1](../scripts/install.ps1) lewat `winget` — tidak perlu tutup/buka ulang PowerShell.)*
+  *(Menjalankan [scripts/install.ps1](../scripts/install.ps1) — tetap jalan meski belum ada Git, Node.js, ataupun `winget`, tanpa restart PowerShell.)*
 
 - **Opsi 2 — Langsung Pasang Installer `.exe` via PowerShell (Tanpa Git & Tanpa Node.js):**
   ```powershell
-  $url = (Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest").assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1 -ExpandProperty browser_download_url
-  $out = "$env:TEMP\DynotchFlow-Setup.exe"
-  Invoke-WebRequest -Uri $url -OutFile $out
-  Start-Process $out
+  $r = Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest"; $u = ($r.assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1).browser_download_url; $f = "$env:TEMP\DynotchFlow-Setup.exe"; Invoke-WebRequest $u -OutFile $f; Start-Process $f
   ```
 
 - **Opsi 3 — Jalankan dari Source via ZIP (Tanpa Git, butuh Node.js 18+):**

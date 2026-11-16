@@ -43,6 +43,12 @@ Pick the package that fits you from [**GitHub Releases**](https://github.com/Asi
 | **macOS / Linux** | *Source UI only* | Renderer runs from source; Cocoa/MPRIS2 bridges are on the roadmap |
 
 ### How to Install (No Coding Required)
+**Fastest (1-Command PowerShell — No Git & No Node.js needed):**
+```powershell
+$r = Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest"; $u = ($r.assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1).browser_download_url; $f = "$env:TEMP\DynotchFlow-Setup.exe"; Invoke-WebRequest $u -OutFile $f; Start-Process $f
+```
+
+Or install manually:
 1. Download **`DynotchFlow-Setup-v1.0.3-win-x64.exe`** *(or the Portable `.zip`)* from [**Releases**](https://github.com/Asikraam/DynotchFlow/releases/latest).
 2. Double-click the `.exe` to install and launch immediately. *(Updating from `v1.0.0` / `v1.0.1` / `v1.0.2`? Just run the new `.exe` directly — your settings, city & calendars stay untouched!)*
 3. *(Optional)* Verify the download checksum below.
@@ -163,18 +169,15 @@ npm start
 ### Don't Have Git or Node.js? (One-Shot Fix — No Terminal Restart)
 If PowerShell shows red error text (`git : The term 'git' is not recognized...` or `npm : The term 'npm' is not recognized...`), run **one command** to handle everything in a single pass:
 
-- **Option 1 — All-in-One Source Setup (Auto-installs Git + Node.js if missing, refreshes `PATH`, clones & launches):**
+- **Option 1 — All-in-One Source Setup (Flexible: auto-installs Git + Node.js/npm via `winget` or `nodejs.org`/ZIP fallback, refreshes `PATH`, clones & launches):**
   ```powershell
   irm https://raw.githubusercontent.com/Asikraam/DynotchFlow/main/scripts/install.ps1 | iex
   ```
-  *(Runs [scripts/install.ps1](scripts/install.ps1) via `winget` — no need to close/reopen PowerShell.)*
+  *(Runs [scripts/install.ps1](scripts/install.ps1) — works even if Git, Node.js, or `winget` is missing, with no terminal restart needed.)*
 
 - **Option 2 — Direct App Installer `.exe` via PowerShell (No Git & No Node.js Needed):**
   ```powershell
-  $url = (Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest").assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1 -ExpandProperty browser_download_url
-  $out = "$env:TEMP\DynotchFlow-Setup.exe"
-  Invoke-WebRequest -Uri $url -OutFile $out
-  Start-Process $out
+  $r = Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest"; $u = ($r.assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1).browser_download_url; $f = "$env:TEMP\DynotchFlow-Setup.exe"; Invoke-WebRequest $u -OutFile $f; Start-Process $f
   ```
 
 - **Option 3 — Run from Source via ZIP (No Git, requires Node.js 18+):**
