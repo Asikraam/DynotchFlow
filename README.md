@@ -160,8 +160,8 @@ npm start
 
 `npm start` automatically runs [scripts/build-bridge.js](scripts/build-bridge.js) to compile `NotchBridge.exe` when missing or modified, then launches Electron immediately.
 
-### Don't Have Git? (One-Shot Fix — No Terminal Restart)
-If PowerShell shows red error text (`git : The term 'git' is not recognized...`), run **one command** to handle everything in a single pass:
+### Don't Have Git or Node.js? (One-Shot Fix — No Terminal Restart)
+If PowerShell shows red error text (`git : The term 'git' is not recognized...` or `npm : The term 'npm' is not recognized...`), run **one command** to handle everything in a single pass:
 
 - **Option 1 — All-in-One Source Setup (Auto-installs Git + Node.js if missing, refreshes `PATH`, clones & launches):**
   ```powershell

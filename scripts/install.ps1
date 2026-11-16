@@ -7,9 +7,17 @@ function Update-SessionPath {
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = "$machinePath;$userPath"
 
-    foreach ($fallback in @("C:\Program Files\Git\cmd", "C:\Program Files\nodejs")) {
-        if ((Test-Path $fallback) -and ($env:Path -notlike "*$fallback*")) {
-            $env:Path = "$env:Path;$fallback"
+    $candidates = @(
+        "C:\Program Files\Git\cmd",
+        "C:\Program Files (x86)\Git\cmd",
+        "C:\Program Files\nodejs",
+        "C:\Program Files (x86)\nodejs",
+        (Join-Path $env:LOCALAPPDATA "Programs\nodejs"),
+        (Join-Path $env:APPDATA "npm")
+    )
+    foreach ($dir in $candidates) {
+        if ((Test-Path $dir) -and ($env:Path -notlike "*$dir*")) {
+            $env:Path = "$env:Path;$dir"
         }
     }
 }
@@ -21,6 +29,7 @@ function Ensure-Tool {
         [Parameter(Mandatory = $true)][string]$DisplayName
     )
 
+    Update-SessionPath
     if (Get-Command $CommandName -ErrorAction SilentlyContinue) {
         Write-Host "[OK] $DisplayName already installed." -ForegroundColor Green
         return
@@ -46,6 +55,10 @@ function Ensure-Tool {
 
 Ensure-Tool -CommandName "git" -WingetId "Git.Git" -DisplayName "Git"
 Ensure-Tool -CommandName "node" -WingetId "OpenJS.NodeJS.LTS" -DisplayName "Node.js LTS"
+Ensure-Tool -CommandName "npm" -WingetId "OpenJS.NodeJS.LTS" -DisplayName "npm"
+
+$npmCmd = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+if (-not $npmCmd) { $npmCmd = (Get-Command npm -ErrorAction Stop).Source }
 
 $targetDir = Join-Path (Get-Location) "DynotchFlow"
 if (Test-Path (Join-Path $targetDir ".git")) {
@@ -66,10 +79,10 @@ if (Test-Path (Join-Path $targetDir ".git")) {
 
 Set-Location $targetDir
 Write-Host "[+] Installing npm dependencies..." -ForegroundColor Cyan
-npm install
+& $npmCmd install
 if ($LASTEXITCODE -ne 0) {
     throw "npm install failed."
 }
 
 Write-Host "[+] Launching DynotchFlow..." -ForegroundColor Green
-npm start
+& $npmCmd start

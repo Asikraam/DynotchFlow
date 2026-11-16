@@ -88,8 +88,8 @@ npm start
 
 `npm start` otomatis memanggil `scripts/build-bridge.js` untuk meng-compile `NotchBridge.exe` jika belum ada atau berubah, lalu langsung menjalankan DynotchFlow.
 
-### Belum Punya Git? (Sekali Jalan Tanpa Restart PowerShell)
-Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recognized...`), cukup jalankan **1 perintah** sampai selesai:
+### Belum Punya Git atau Node.js? (Sekali Jalan Tanpa Restart PowerShell)
+Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recognized...` atau `npm : The term 'npm' is not recognized...`), cukup jalankan **1 perintah** sampai selesai:
 
 - **Opsi 1 — All-in-One Sekali Jalan (Otomatis pasang Git + Node.js kalau belum ada, refresh `PATH`, clone, & langsung jalankan):**
   ```powershell
