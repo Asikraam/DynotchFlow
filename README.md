@@ -160,10 +160,16 @@ npm start
 
 `npm start` automatically runs [scripts/build-bridge.js](scripts/build-bridge.js) to compile `NotchBridge.exe` when missing or modified, then launches Electron immediately.
 
-### Don't Have Git? (Fix Red `git` Error in PowerShell)
-If PowerShell shows red error text (`git : The term 'git' is not recognized...`), use any of these options:
+### Don't Have Git? (One-Shot Fix — No Terminal Restart)
+If PowerShell shows red error text (`git : The term 'git' is not recognized...`), run **one command** to handle everything in a single pass:
 
-- **Option 1 — Direct Install via PowerShell (No Git & No Node.js Needed):**
+- **Option 1 — All-in-One Source Setup (Auto-installs Git + Node.js if missing, refreshes `PATH`, clones & launches):**
+  ```powershell
+  irm https://raw.githubusercontent.com/Asikraam/DynotchFlow/main/scripts/install.ps1 | iex
+  ```
+  *(Runs [scripts/install.ps1](scripts/install.ps1) via `winget` — no need to close/reopen PowerShell.)*
+
+- **Option 2 — Direct App Installer `.exe` via PowerShell (No Git & No Node.js Needed):**
   ```powershell
   $url = (Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest").assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1 -ExpandProperty browser_download_url
   $out = "$env:TEMP\DynotchFlow-Setup.exe"
@@ -171,7 +177,7 @@ If PowerShell shows red error text (`git : The term 'git' is not recognized...`)
   Start-Process $out
   ```
 
-- **Option 2 — Run from Source Without Git (Download ZIP via PowerShell, requires Node.js 18+):**
+- **Option 3 — Run from Source via ZIP (No Git, requires Node.js 18+):**
   ```powershell
   $zip = "$env:TEMP\DynotchFlow.zip"
   Invoke-WebRequest -Uri "https://github.com/Asikraam/DynotchFlow/archive/refs/heads/main.zip" -OutFile $zip
@@ -180,12 +186,6 @@ If PowerShell shows red error text (`git : The term 'git' is not recognized...`)
   npm install
   npm start
   ```
-
-- **Option 3 — Install Git First, Then Clone:**
-  ```powershell
-  winget install --id Git.Git -e --source winget
-  ```
-  Close and reopen PowerShell so `PATH` refreshes, then run `git clone https://github.com/Asikraam/DynotchFlow.git`.
 
 ---
 

@@ -88,10 +88,16 @@ npm start
 
 `npm start` otomatis memanggil `scripts/build-bridge.js` untuk meng-compile `NotchBridge.exe` jika belum ada atau berubah, lalu langsung menjalankan DynotchFlow.
 
-### Belum Punya Git? (Solusi Error Merah `git` di PowerShell)
-Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recognized...`), pakai salah satu cara berikut:
+### Belum Punya Git? (Sekali Jalan Tanpa Restart PowerShell)
+Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recognized...`), cukup jalankan **1 perintah** sampai selesai:
 
-- **Opsi 1 — Langsung Pasang Installer `.exe` via PowerShell (Tanpa Git & Tanpa Node.js):**
+- **Opsi 1 — All-in-One Sekali Jalan (Otomatis pasang Git + Node.js kalau belum ada, refresh `PATH`, clone, & langsung jalankan):**
+  ```powershell
+  irm https://raw.githubusercontent.com/Asikraam/DynotchFlow/main/scripts/install.ps1 | iex
+  ```
+  *(Menjalankan [scripts/install.ps1](../scripts/install.ps1) lewat `winget` — tidak perlu tutup/buka ulang PowerShell.)*
+
+- **Opsi 2 — Langsung Pasang Installer `.exe` via PowerShell (Tanpa Git & Tanpa Node.js):**
   ```powershell
   $url = (Invoke-RestMethod "https://api.github.com/repos/Asikraam/DynotchFlow/releases/latest").assets | Where-Object { $_.name -like "*Setup*.exe" } | Select-Object -First 1 -ExpandProperty browser_download_url
   $out = "$env:TEMP\DynotchFlow-Setup.exe"
@@ -99,7 +105,7 @@ Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recogni
   Start-Process $out
   ```
 
-- **Opsi 2 — Jalankan dari Source Tanpa Git (Unduh ZIP via PowerShell, butuh Node.js 18+):**
+- **Opsi 3 — Jalankan dari Source via ZIP (Tanpa Git, butuh Node.js 18+):**
   ```powershell
   $zip = "$env:TEMP\DynotchFlow.zip"
   Invoke-WebRequest -Uri "https://github.com/Asikraam/DynotchFlow/archive/refs/heads/main.zip" -OutFile $zip
@@ -108,9 +114,3 @@ Jika muncul error teks merah di PowerShell (`git : The term 'git' is not recogni
   npm install
   npm start
   ```
-
-- **Opsi 3 — Pasang Git Dulu Baru Clone:**
-  ```powershell
-  winget install --id Git.Git -e --source winget
-  ```
-  Tutup lalu buka ulang PowerShell supaya `PATH` ter-refresh, baru jalankan `git clone https://github.com/Asikraam/DynotchFlow.git`.
